@@ -31,8 +31,8 @@ services:
       - db
     command: >
       bash -c "
-        apt-get update && apt-get install -y libpng-dev libonig-dev libxml2-dev libzip-dev zip unzip git curl &&
-        docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip &&
+        apt-get update && apt-get install -y libpng-dev libonig-dev libxml2-dev libzip-dev libldap2-dev zip unzip git curl &&
+        docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip ldap &&
         curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer &&
         cd /var/www &&
         composer install --no-dev --optimize-autoloader --no-interaction &&
