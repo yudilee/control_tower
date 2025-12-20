@@ -68,30 +68,105 @@
     $cvJobCount = (clone $allInvoicedJobs)->where('franchise', 'CV')->count();
 @endphp
 
-<!-- Summary Cards -->
+<!-- Summary Cards - Modern Glassmorphism -->
+<style>
+.stat-card {
+    border-radius: 16px;
+    padding: 1.25rem;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+.stat-card .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+.stat-card .stat-label {
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+.stat-card-total {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.15) 0%, rgba(40, 167, 69, 0.25) 100%);
+    border: 1px solid rgba(40, 167, 69, 0.4);
+}
+.stat-card-total .stat-value { color: #28a745; }
+[data-theme="dark"] .stat-card-total .stat-value { color: #5dd879; }
+.stat-card-pc {
+    background: linear-gradient(135deg, rgba(0, 123, 255, 0.15) 0%, rgba(0, 123, 255, 0.25) 100%);
+    border: 1px solid rgba(0, 123, 255, 0.4);
+}
+.stat-card-pc .stat-value { color: #007bff; }
+[data-theme="dark"] .stat-card-pc .stat-value { color: #6cb5ff; }
+.stat-card-cv {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 193, 7, 0.25) 100%);
+    border: 1px solid rgba(255, 193, 7, 0.4);
+}
+.stat-card-cv .stat-value { color: #e0a800; }
+[data-theme="dark"] .stat-card-cv .stat-value { color: #ffc107; }
+
+.breakdown-card {
+    border-radius: 12px;
+    border: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+}
+.breakdown-header {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.breakdown-header.pc { background: linear-gradient(90deg, rgba(0, 123, 255, 0.1), transparent); color: var(--bs-body-color); }
+.breakdown-header.cv { background: linear-gradient(90deg, rgba(255, 193, 7, 0.15), transparent); color: var(--bs-body-color); }
+.breakdown-item {
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    text-align: center;
+    border: 1px solid var(--bs-border-color);
+    background: var(--bs-tertiary-bg);
+    transition: background 0.2s;
+}
+.breakdown-item:hover {
+    background: var(--bs-secondary-bg);
+}
+.breakdown-item .amount {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+.breakdown-item .label {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+.breakdown-item.pc .amount { color: #007bff; }
+[data-theme="dark"] .breakdown-item.pc .amount { color: #6cb5ff; }
+.breakdown-item.cv .amount { color: #e0a800; }
+[data-theme="dark"] .breakdown-item.cv .amount { color: #ffc107; }
+</style>
+
 <div class="row g-3 mb-4">
     <div class="col-md-4">
-        <div class="card text-center border-success bg-success bg-opacity-10">
-            <div class="card-body py-3">
-                <h4 class="mb-1 text-success">Rp {{ number_format($totalAll, 0, ',', '.') }}</h4>
-                <small class="text-muted"><i class="bi bi-cash-stack me-1"></i>Total Invoiced ({{ number_format($totalJobCount) }} jobs)</small>
-            </div>
+        <div class="stat-card stat-card-total">
+            <div class="stat-value">Rp {{ number_format($totalAll, 0, ',', '.') }}</div>
+            <div class="stat-label"><i class="bi bi-cash-stack me-1"></i>Total Invoiced ({{ number_format($totalJobCount) }} jobs)</div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card text-center border-primary bg-primary bg-opacity-10">
-            <div class="card-body py-3">
-                <h4 class="mb-1 text-primary">Rp {{ number_format($totalPC, 0, ',', '.') }}</h4>
-                <small class="text-muted"><i class="bi bi-car-front me-1"></i>PC - Passenger Car ({{ number_format($pcJobCount) }} jobs)</small>
-            </div>
+        <div class="stat-card stat-card-pc">
+            <div class="stat-value">Rp {{ number_format($totalPC, 0, ',', '.') }}</div>
+            <div class="stat-label"><i class="bi bi-car-front me-1"></i>PC - Passenger Car ({{ number_format($pcJobCount) }} jobs)</div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card text-center border-warning bg-warning bg-opacity-10">
-            <div class="card-body py-3">
-                <h4 class="mb-1 text-warning">Rp {{ number_format($totalCV, 0, ',', '.') }}</h4>
-                <small class="text-muted"><i class="bi bi-truck me-1"></i>CV - Commercial Vehicle ({{ number_format($cvJobCount) }} jobs)</small>
-            </div>
+        <div class="stat-card stat-card-cv">
+            <div class="stat-value">Rp {{ number_format($totalCV, 0, ',', '.') }}</div>
+            <div class="stat-label"><i class="bi bi-truck me-1"></i>CV - Commercial Vehicle ({{ number_format($cvJobCount) }} jobs)</div>
         </div>
     </div>
 </div>
@@ -99,21 +174,19 @@
 <div class="row g-3 mb-4">
     <!-- Type Sale Breakdown - PC -->
     <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header bg-primary bg-opacity-10">
-                <i class="bi bi-car-front me-2"></i>PC Type Sale
-                <span class="badge bg-primary float-end">{{ $typeSaleTotalsPC->sum('job_count') }} jobs</span>
+        <div class="breakdown-card h-100">
+            <div class="breakdown-header pc">
+                <span><i class="bi bi-car-front me-2"></i>PC Type Sale</span>
+                <span class="badge bg-primary">{{ $typeSaleTotalsPC->sum('job_count') }} jobs</span>
             </div>
-            <div class="card-body">
+            <div class="p-3">
                 @if($typeSaleTotalsPC->isNotEmpty())
                 <div class="row g-2">
                     @foreach($typeSaleTotalsPC as $ts)
                     <div class="col-6">
-                        <div class="card border-0 bg-light">
-                            <div class="card-body py-2 text-center">
-                                <h6 class="mb-0 text-primary">Rp {{ number_format($ts->total, 0, ',', '.') }}</h6>
-                                <small class="text-muted">{{ $typeSaleLabels[$ts->type_sale] ?? $ts->type_sale }} ({{ $ts->job_count }})</small>
-                            </div>
+                        <div class="breakdown-item pc">
+                            <div class="amount">Rp {{ number_format($ts->total, 0, ',', '.') }}</div>
+                            <div class="label">{{ $typeSaleLabels[$ts->type_sale] ?? $ts->type_sale }} ({{ $ts->job_count }})</div>
                         </div>
                     </div>
                     @endforeach
@@ -127,21 +200,19 @@
 
     <!-- Type Sale Breakdown - CV -->
     <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header bg-warning bg-opacity-10">
-                <i class="bi bi-truck me-2"></i>CV Type Sale
-                <span class="badge bg-warning float-end">{{ $typeSaleTotalsCV->sum('job_count') }} jobs</span>
+        <div class="breakdown-card h-100">
+            <div class="breakdown-header cv">
+                <span><i class="bi bi-truck me-2"></i>CV Type Sale</span>
+                <span class="badge bg-warning text-dark">{{ $typeSaleTotalsCV->sum('job_count') }} jobs</span>
             </div>
-            <div class="card-body">
+            <div class="p-3">
                 @if($typeSaleTotalsCV->isNotEmpty())
                 <div class="row g-2">
                     @foreach($typeSaleTotalsCV as $ts)
                     <div class="col-6">
-                        <div class="card border-0 bg-light">
-                            <div class="card-body py-2 text-center">
-                                <h6 class="mb-0 text-warning">Rp {{ number_format($ts->total, 0, ',', '.') }}</h6>
-                                <small class="text-muted">{{ $typeSaleLabels[$ts->type_sale] ?? $ts->type_sale }} ({{ $ts->job_count }})</small>
-                            </div>
+                        <div class="breakdown-item cv">
+                            <div class="amount">Rp {{ number_format($ts->total, 0, ',', '.') }}</div>
+                            <div class="label">{{ $typeSaleLabels[$ts->type_sale] ?? $ts->type_sale }} ({{ $ts->job_count }})</div>
                         </div>
                     </div>
                     @endforeach
@@ -157,21 +228,19 @@
 <!-- PC Department Breakdown - Full Width -->
 <div class="row g-3 mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-primary bg-opacity-10">
-                <i class="bi bi-building me-2"></i>PC Department Breakdown
-                <span class="badge bg-primary float-end">{{ $deptTotals->sum('job_count') }} jobs</span>
+        <div class="breakdown-card">
+            <div class="breakdown-header pc">
+                <span><i class="bi bi-building me-2"></i>PC Department Breakdown</span>
+                <span class="badge bg-primary">{{ $deptTotals->sum('job_count') }} jobs</span>
             </div>
-            <div class="card-body">
+            <div class="p-3">
                 @if($deptTotals->isNotEmpty())
                 <div class="row g-2">
                     @foreach($deptTotals as $dept)
                     <div class="col-md-3 col-6">
-                        <div class="card border-0 bg-light">
-                            <div class="card-body py-2 text-center">
-                                <h6 class="mb-0 text-primary">Rp {{ number_format($dept->total, 0, ',', '.') }}</h6>
-                                <small class="text-muted">{{ $dept->department }} ({{ $dept->job_count }})</small>
-                            </div>
+                        <div class="breakdown-item pc">
+                            <div class="amount">Rp {{ number_format($dept->total, 0, ',', '.') }}</div>
+                            <div class="label">{{ $dept->department }} ({{ $dept->job_count }})</div>
                         </div>
                     </div>
                     @endforeach
@@ -298,22 +367,61 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover table-sm mb-0" id="dataTable">
-                <thead class="table-light">
-                    <tr>
-                        <th class="col-job_number">WIP</th>
-                        <th class="col-franchise d-none">Franchise</th>
-                        <th class="col-department d-none">Dept</th>
-                        <th class="col-plate_number">Plate</th>
-                        <th class="col-customer_name d-none">Customer</th>
-                        <th class="col-service_advisor">SA</th>
-                        <th class="col-foreman d-none">Foreman</th>
-                        <th class="col-job_date">Job Date</th>
-                        <th class="col-date_in d-none">Date In</th>
-                        <th class="col-date_out d-none">Date Out</th>
-                        <th class="col-invoice_number">Invoice #</th>
-                        <th class="col-invoice_date">Inv Date</th>
-                        <th class="col-type_sale d-none">Type Sale</th>
-                        <th class="col-inv_ppn_meterai text-end">Amount</th>
+                <thead class="table-dark">
+                    @php
+                        $currentSort = request('sort', 'invoice_date');
+                        $currentDir = request('dir', 'desc');
+                        $sortMap = [
+                            'job_number' => 'job_number',
+                            'plate_number' => 'plate_number',
+                            'service_advisor' => 'service_advisor',
+                            'foreman' => 'foreman',
+                            'job_date' => 'job_date',
+                            'invoice_number' => 'invoice_number',
+                            'invoice_date' => 'invoice_date',
+                            'inv_ppn_meterai' => 'inv_ppn_meterai',
+                        ];
+                    @endphp
+                    <tr id="headerRow">
+                        @foreach([
+                            'job_number' => 'WIP',
+                            'franchise' => 'Franchise',
+                            'department' => 'Dept',
+                            'plate_number' => 'Plate',
+                            'customer_name' => 'Customer',
+                            'service_advisor' => 'SA',
+                            'foreman' => 'Foreman',
+                            'job_date' => 'Job Date',
+                            'date_in' => 'Date In',
+                            'date_out' => 'Date Out',
+                            'invoice_number' => 'Invoice #',
+                            'invoice_date' => 'Inv Date',
+                            'type_sale' => 'Type Sale',
+                            'inv_ppn_meterai' => 'Amount',
+                        ] as $col => $label)
+                            @php
+                                $sortable = isset($sortMap[$col]);
+                                $sortField = $sortMap[$col] ?? null;
+                                $isActive = $sortable && $currentSort === $sortField;
+                                $nextDir = $isActive && $currentDir === 'asc' ? 'desc' : 'asc';
+                                $isHidden = in_array($col, ['franchise', 'department', 'customer_name', 'foreman', 'date_in', 'date_out', 'type_sale']);
+                                $isNumeric = $col === 'inv_ppn_meterai';
+                            @endphp
+                            <th data-col="{{ $col }}" class="col-{{ $col }} {{ $isHidden ? 'd-none' : '' }} {{ $isNumeric ? 'text-end' : '' }}" @if($sortable) style="cursor: pointer;" @endif>
+                                @if($sortable)
+                                    <a href="{{ request()->fullUrlWithQuery(['sort' => $sortField, 'dir' => $nextDir]) }}" class="text-white text-decoration-none d-flex align-items-center {{ $isNumeric ? 'justify-content-end' : 'justify-content-between' }}">
+                                        {{ $label }}
+                                        @if($isActive)
+                                            <i class="bi bi-arrow-{{ $currentDir === 'asc' ? 'up' : 'down' }} ms-1"></i>
+                                        @else
+                                            <i class="bi bi-arrow-down-up ms-1 opacity-25"></i>
+                                        @endif
+                                    </a>
+                                @else
+                                    {{ $label }}
+                                @endif
+                            </th>
+                        @endforeach
                         <th class="text-center" style="width: 60px;">Inv</th>
                     </tr>
                 </thead>
@@ -406,27 +514,58 @@
 
 @push('scripts')
 <script>
-// Column toggle functionality
-document.querySelectorAll('.column-toggle').forEach(checkbox => {
-    checkbox.addEventListener('change', function() {
-        const column = this.dataset.column;
-        const cells = document.querySelectorAll('.col-' + column);
-        cells.forEach(cell => {
-            cell.classList.toggle('d-none', !this.checked);
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.getElementById('dataTable');
+    
+    // Column toggle functionality
+    document.querySelectorAll('.column-toggle').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const column = this.dataset.column;
+            const cells = document.querySelectorAll('.col-' + column);
+            cells.forEach(cell => {
+                cell.classList.toggle('d-none', !this.checked);
+            });
+            localStorage.setItem('invoiced_col_' + column, this.checked ? '1' : '0');
         });
-        // Save to localStorage
-        localStorage.setItem('invoiced_col_' + column, this.checked ? '1' : '0');
+        
+        const saved = localStorage.getItem('invoiced_col_' + checkbox.dataset.column);
+        if (saved !== null) {
+            checkbox.checked = saved === '1';
+            const cells = document.querySelectorAll('.col-' + checkbox.dataset.column);
+            cells.forEach(cell => {
+                cell.classList.toggle('d-none', saved !== '1');
+            });
+        }
+    });
+
+    // Column Resizing
+    table.querySelectorAll('th[data-col]').forEach(th => {
+        const resizer = document.createElement('div');
+        resizer.style.cssText = 'width:5px;height:100%;position:absolute;right:0;top:0;cursor:col-resize;user-select:none;z-index:10;';
+        th.appendChild(resizer);
+        th.style.position = 'relative';
+        let startX, startWidth;
+        resizer.addEventListener('mousedown', e => {
+            e.stopPropagation();
+            startX = e.pageX;
+            startWidth = th.offsetWidth;
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
+        function onMove(e) { th.style.width = (startWidth + e.pageX - startX) + 'px'; }
+        function onUp() { 
+            document.removeEventListener('mousemove', onMove); 
+            document.removeEventListener('mouseup', onUp);
+            const col = th.dataset.col;
+            if (col) localStorage.setItem('invoiced_width_' + col, th.style.width);
+        }
     });
     
-    // Restore from localStorage
-    const saved = localStorage.getItem('invoiced_col_' + checkbox.dataset.column);
-    if (saved !== null) {
-        checkbox.checked = saved === '1';
-        const cells = document.querySelectorAll('.col-' + checkbox.dataset.column);
-        cells.forEach(cell => {
-            cell.classList.toggle('d-none', saved !== '1');
-        });
-    }
+    // Restore saved widths
+    table.querySelectorAll('th[data-col]').forEach(th => {
+        const savedWidth = localStorage.getItem('invoiced_width_' + th.dataset.col);
+        if (savedWidth) th.style.width = savedWidth;
+    });
 });
 
 // Export function
@@ -434,7 +573,6 @@ function exportReport(format) {
     const params = new URLSearchParams(window.location.search);
     params.set('format', format);
     
-    // Get visible columns
     const columns = [];
     document.querySelectorAll('.column-toggle:checked').forEach(cb => {
         columns.push(cb.dataset.column);
@@ -445,3 +583,4 @@ function exportReport(format) {
 }
 </script>
 @endpush
+

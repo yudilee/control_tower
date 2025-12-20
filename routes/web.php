@@ -22,6 +22,10 @@ Route::middleware('guest')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
 });
 
+// 2FA Challenge (separate from auth middleware)
+Route::get('two-factor/challenge', [\App\Http\Controllers\TwoFactorController::class, 'challenge'])->name('2fa.challenge');
+Route::post('two-factor/verify', [\App\Http\Controllers\TwoFactorController::class, 'verify'])->name('2fa.verify');
+
 Route::post('logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 // Protected Routes - All Authenticated Users
@@ -30,6 +34,29 @@ Route::middleware('auth')->group(function () {
     Route::get('/', function () {
         return view('dashboard');
     })->name('dashboard');
+    
+    // Global Search
+    Route::get('search', [\App\Http\Controllers\SearchController::class, 'search'])->name('search');
+    
+    // Notifications
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\NotificationController::class, 'index'])->name('index');
+        Route::post('{notification}/read', [\App\Http\Controllers\NotificationController::class, 'markRead'])->name('read');
+        Route::post('mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllRead'])->name('mark-all-read');
+        Route::delete('{notification}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('destroy');
+        Route::delete('/', [\App\Http\Controllers\NotificationController::class, 'clearAll'])->name('clear-all');
+    });
+    
+    // Two-Factor Authentication
+    Route::prefix('two-factor')->name('2fa.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\TwoFactorController::class, 'index'])->name('index');
+        Route::get('enable', [\App\Http\Controllers\TwoFactorController::class, 'enable'])->name('enable');
+        Route::post('confirm', [\App\Http\Controllers\TwoFactorController::class, 'confirm'])->name('confirm');
+        Route::delete('disable', [\App\Http\Controllers\TwoFactorController::class, 'disable'])->name('disable');
+        Route::post('regenerate-codes', [\App\Http\Controllers\TwoFactorController::class, 'regenerateCodes'])->name('regenerate-codes');
+        Route::delete('sessions/{session}', [\App\Http\Controllers\TwoFactorController::class, 'terminateSession'])->name('terminate-session');
+        Route::post('terminate-other-sessions', [\App\Http\Controllers\TwoFactorController::class, 'terminateOtherSessions'])->name('terminate-other-sessions');
+    });
 
     // User Preferences - Everyone can save their own preferences
     Route::post('preferences/columns', [PreferenceController::class, 'storeColumns'])->name('preferences.columns');
@@ -56,6 +83,8 @@ Route::middleware('auth')->group(function () {
         Route::get('uninvoiced', [ReportController::class, 'uninvoiced'])->name('uninvoiced');
         Route::get('invoiced', [ReportController::class, 'invoiced'])->name('invoiced');
         Route::get('needs-parts', [ReportController::class, 'needsParts'])->name('needs-parts');
+        Route::get('aging', [ReportController::class, 'aging'])->name('aging');
+        Route::get('sa-performance', [ReportController::class, 'saPerformance'])->name('sa-performance');
         Route::get('customer-merges', [ReportController::class, 'customerMerges'])->name('customer-merges');
         Route::get('customer-merges/export', [ReportController::class, 'exportCustomerMerges'])->name('customer-merges.export');
         Route::get('wip-conflicts', [\App\Http\Controllers\WipConflictReportController::class, 'index'])->name('wip-conflicts');
@@ -68,6 +97,7 @@ Route::middleware('auth')->group(function () {
     // Add Remarks - SA, Foreman, Sparepart, Control Tower, Manager, Admin
     Route::middleware('role:sa,foreman,sparepart,control_tower,manager,admin')->group(function () {
         Route::post('jobs/{job}/remark', [JobController::class, 'addRemark'])->name('jobs.add-remark');
+        Route::post('jobs/bulk-update', [JobController::class, 'bulkUpdate'])->name('jobs.bulk-update');
     });
 
     // Sparepart can update Order & Parts on jobs that need parts
@@ -144,6 +174,14 @@ Route::middleware('auth')->group(function () {
         Route::get('ldap/create', [\App\Http\Controllers\LdapServerController::class, 'create'])->name('ldap.create');
         Route::post('ldap', [\App\Http\Controllers\LdapServerController::class, 'store'])->name('ldap.store');
         Route::get('ldap/{ldapServer}/edit', [\App\Http\Controllers\LdapServerController::class, 'edit'])->name('ldap.edit');
+        
+        // Backup routes
+        Route::get('/backups', [\App\Http\Controllers\Admin\BackupController::class, 'index'])->name('backups.index');
+        Route::post('/backups', [\App\Http\Controllers\Admin\BackupController::class, 'create'])->name('backups.create');
+        Route::get('/backups/{filename}/download', [\App\Http\Controllers\Admin\BackupController::class, 'download'])->name('backups.download');
+        Route::post('/backups/{filename}/restore', [\App\Http\Controllers\Admin\BackupController::class, 'restore'])->name('backups.restore');
+        Route::delete('/backups/{filename}', [\App\Http\Controllers\Admin\BackupController::class, 'delete'])->name('backups.destroy');
+        Route::post('/backups/schedule', [\App\Http\Controllers\Admin\BackupController::class, 'updateSchedule'])->name('backups.schedule');
         Route::put('ldap/{ldapServer}', [\App\Http\Controllers\LdapServerController::class, 'update'])->name('ldap.update');
         Route::delete('ldap/{ldapServer}', [\App\Http\Controllers\LdapServerController::class, 'destroy'])->name('ldap.destroy');
         Route::get('ldap/{ldapServer}/test', [\App\Http\Controllers\LdapServerController::class, 'testConnection'])->name('ldap.test');
@@ -151,6 +189,11 @@ Route::middleware('auth')->group(function () {
         // Data Cleanup
         Route::get('data-cleanup', [\App\Http\Controllers\Admin\DataCleanupController::class, 'index'])->name('data-cleanup.index');
         Route::post('data-cleanup', [\App\Http\Controllers\Admin\DataCleanupController::class, 'cleanup'])->name('data-cleanup.execute');
+
+        // Session Manager
+        Route::get('sessions', [\App\Http\Controllers\Admin\SessionController::class, 'index'])->name('sessions.index');
+        Route::delete('sessions/{session}', [\App\Http\Controllers\Admin\SessionController::class, 'terminate'])->name('sessions.terminate');
+        Route::delete('sessions/user/{user}', [\App\Http\Controllers\Admin\SessionController::class, 'terminateUser'])->name('sessions.terminate-user');
 
         // Dropdown Options Management
         Route::get('dropdowns', [\App\Http\Controllers\DropdownController::class, 'index'])->name('dropdowns.index');
@@ -177,5 +220,32 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:audit,admin')->group(function () {
         Route::get('audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('audit-logs.index');
         Route::get('tracker', [\App\Http\Controllers\TrackerController::class, 'index'])->name('tracker.index');
+    });
+});
+
+// ============================================
+// CUSTOMER PORTAL ROUTES
+// ============================================
+
+// Customer Auth (Guest)
+Route::prefix('customer')->name('customer.')->group(function () {
+    Route::middleware('guest:customer')->group(function () {
+        Route::get('login', [\App\Http\Controllers\Customer\CustomerAuthController::class, 'showLogin'])->name('login');
+        Route::post('login', [\App\Http\Controllers\Customer\CustomerAuthController::class, 'login']);
+        Route::get('register', [\App\Http\Controllers\Customer\CustomerAuthController::class, 'showRegister'])->name('register');
+        Route::post('register', [\App\Http\Controllers\Customer\CustomerAuthController::class, 'register']);
+    });
+    
+    Route::post('logout', [\App\Http\Controllers\Customer\CustomerAuthController::class, 'logout'])->name('logout');
+    
+    // Customer Protected Routes
+    Route::middleware('auth:customer')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Customer\CustomerDashboardController::class, 'dashboard'])->name('dashboard');
+        Route::get('jobs', [\App\Http\Controllers\Customer\CustomerDashboardController::class, 'jobs'])->name('jobs');
+        Route::get('jobs/{job}', [\App\Http\Controllers\Customer\CustomerDashboardController::class, 'showJob'])->name('jobs.show');
+        Route::get('jobs/{job}/invoice', [\App\Http\Controllers\Customer\CustomerDashboardController::class, 'downloadInvoice'])->name('jobs.invoice');
+        Route::get('vehicles', [\App\Http\Controllers\Customer\CustomerDashboardController::class, 'vehicles'])->name('vehicles');
+        Route::get('profile', [\App\Http\Controllers\Customer\CustomerDashboardController::class, 'profile'])->name('profile');
+        Route::put('profile', [\App\Http\Controllers\Customer\CustomerDashboardController::class, 'updateProfile'])->name('profile.update');
     });
 });

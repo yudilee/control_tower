@@ -26,40 +26,58 @@
                         <strong><i class="bi bi-shield-exclamation me-2"></i>Protected Data (will NOT be deleted):</strong>
                         <ul class="mb-0 mt-2">
                             <li><strong>Users</strong> - All user accounts</li>
-                            <li><strong>Foremen</strong> - Master data</li>
-                            <li><strong>Service Advisors</strong> - Master data</li>
-                            <li><strong>LDAP Servers</strong> - Configuration</li>
-                            <li><strong>Saved Reports</strong> - Report configurations</li>
+                            <li><strong>Foremen / Service Advisors</strong> - Master data</li>
+                            <li><strong>LDAP Servers / Dropdown Options</strong> - Configuration</li>
                         </ul>
                     </div>
 
                     <h5 class="mb-3">Select data to delete:</h5>
                     
-                    <div class="row g-3 mb-4">
-                        @foreach([
-                            'jobs' => ['Jobs', 'bi-briefcase', 'danger'],
-                            'job_invoices' => ['Job Invoices', 'bi-receipt', 'danger'],
-                            'bookings' => ['Bookings', 'bi-calendar-check', 'primary'],
-                            'pdi_records' => ['PDI Records', 'bi-clipboard-check', 'success'],
-                            'towing_records' => ['Towing Records', 'bi-truck', 'info'],
-                            'vehicles' => ['Vehicles', 'bi-car-front', 'warning'],
-                            'remarks' => ['Remarks/Comments', 'bi-chat-text', 'secondary'],
-                            'imports' => ['Import History', 'bi-upload', 'dark'],
-                            'audit_logs' => ['Audit Logs', 'bi-journal-text', 'secondary'],
-                        ] as $table => $info)
+                    @php
+                        $icons = [
+                            'jobs' => ['bi-briefcase', 'danger'],
+                            'job_invoices' => ['bi-receipt', 'danger'],
+                            'bookings' => ['bi-calendar-check', 'primary'],
+                            'pdi_records' => ['bi-clipboard-check', 'success'],
+                            'towing_records' => ['bi-truck', 'info'],
+                            'vehicles' => ['bi-car-front', 'warning'],
+                            'remarks' => ['bi-chat-text', 'secondary'],
+                            'customer_vehicles' => ['bi-link', 'info'],
+                            'customers' => ['bi-people', 'primary'],
+                            'customer_merge_logs' => ['bi-arrow-left-right', 'warning'],
+                            'dismissed_duplicate_groups' => ['bi-x-circle', 'secondary'],
+                            'notifications' => ['bi-bell', 'info'],
+                            'user_sessions' => ['bi-display', 'primary'],
+                            'saved_reports' => ['bi-file-earmark-bar-graph', 'success'],
+                            'imports' => ['bi-upload', 'dark'],
+                            'audit_logs' => ['bi-journal-text', 'secondary'],
+                        ];
+                    @endphp
+                    
+                    @foreach($tableGroups as $group => $tables)
+                    <h6 class="mb-2 mt-4 text-muted">{{ $group }}</h6>
+                    <div class="row g-2 mb-3">
+                        @foreach($tables as $table => $label)
+                        @php 
+                            $icon = $icons[$table] ?? ['bi-table', 'secondary'];
+                        @endphp
                         <div class="col-md-6">
-                            <div class="form-check card p-3 border">
-                                <input class="form-check-input me-2" type="checkbox" name="tables[]" value="{{ $table }}" id="table_{{ $table }}">
+                            <div class="form-check card p-2 border {{ $counts[$table] == 0 ? 'opacity-50' : '' }}">
+                                <input class="form-check-input me-2" type="checkbox" name="tables[]" 
+                                       value="{{ $table }}" id="table_{{ $table }}" {{ $counts[$table] == 0 ? 'disabled' : '' }}>
                                 <label class="form-check-label d-flex align-items-center justify-content-between w-100" for="table_{{ $table }}">
                                     <span>
-                                        <i class="bi {{ $info[1] }} me-2 text-{{ $info[2] }}"></i>{{ $info[0] }}
+                                        <i class="bi {{ $icon[0] }} me-2 text-{{ $icon[1] }}"></i>{{ $label }}
                                     </span>
-                                    <span class="badge bg-{{ $info[2] }}">{{ number_format($counts[$table]) }}</span>
+                                    <span class="badge bg-{{ $counts[$table] > 0 ? $icon[1] : 'secondary' }}">
+                                        {{ number_format($counts[$table]) }}
+                                    </span>
                                 </label>
                             </div>
                         </div>
                         @endforeach
                     </div>
+                    @endforeach
 
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <button type="button" class="btn btn-outline-secondary btn-sm" id="selectAll">Select All</button>
@@ -87,7 +105,7 @@
     </div>
 
     <div class="col-lg-4">
-        <div class="card bg-light">
+        <div class="card">
             <div class="card-header">
                 <i class="bi bi-info-circle me-2"></i>Information
             </div>

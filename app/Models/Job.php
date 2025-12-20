@@ -206,7 +206,52 @@ class Job extends Model
             'latest_remark_at' => now(),
         ]);
 
+        // Notify assigned SA/Foreman about new remark (if different from creator)
+        $this->notifyAssignedUsers($remarkText, $createdBy, $userId);
+
         return $remark;
+    }
+
+    /**
+     * Notify SA and Foreman about activity on their job
+     */
+    protected function notifyAssignedUsers(string $remarkText, ?string $createdBy, ?int $creatorUserId): void
+    {
+        $usersToNotify = [];
+        
+        // Find SA user
+        if ($this->service_advisor) {
+            $saUser = User::whereHas('serviceAdvisor', function($q) {
+                $q->where('name', $this->service_advisor);
+            })->first();
+            
+            if ($saUser && $saUser->id !== $creatorUserId) {
+                $usersToNotify[] = $saUser;
+            }
+        }
+        
+        // Find Foreman user
+        if ($this->foreman) {
+            $foremanUser = User::whereHas('foreman', function($q) {
+                $q->where('name', $this->foreman);
+            })->first();
+            
+            if ($foremanUser && $foremanUser->id !== $creatorUserId) {
+                $usersToNotify[] = $foremanUser;
+            }
+        }
+        
+        foreach ($usersToNotify as $user) {
+            Notification::notify(
+                $user->id,
+                Notification::TYPE_REMARK_ADDED,
+                "New remark on {$this->job_number}",
+                \Illuminate\Support\Str::limit($remarkText, 100) . " — by {$createdBy}",
+                route('jobs.show', $this->id),
+                'chat-text-fill',
+                'info'
+            );
+        }
     }
 
     public function markAsInvoiced(string $invoiceNumber): void

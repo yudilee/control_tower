@@ -3,15 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Job;
-use App\Models\JobInvoice;
-use App\Models\Booking;
-use App\Models\PdiRecord;
-use App\Models\TowingRecord;
-use App\Models\Vehicle;
-use App\Models\Remark;
-use App\Models\Import;
-use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -19,26 +10,58 @@ use Illuminate\Support\Facades\Log;
 class DataCleanupController extends Controller
 {
     /**
+     * All cleanable tables grouped by category
+     */
+    protected $tableGroups = [
+        'Core Data' => [
+            'remarks' => 'Remarks',
+            'job_invoices' => 'Job Invoices',
+            'jobs' => 'Jobs',
+            'bookings' => 'Bookings',
+            'pdi_records' => 'PDI Records',
+            'towing_records' => 'Towing Records',
+            'vehicles' => 'Vehicles',
+        ],
+        'Customer Portal' => [
+            'customer_vehicles' => 'Customer-Vehicle Links',
+            'customers' => 'Customers (Portal)',
+        ],
+        'Merge & Duplicates' => [
+            'customer_merge_logs' => 'Customer Merge Logs',
+            'dismissed_duplicate_groups' => 'Dismissed Duplicate Groups',
+        ],
+        'System Data' => [
+            'notifications' => 'Notifications',
+            'user_sessions' => 'User Sessions',
+            'saved_reports' => 'Saved Reports',
+            'imports' => 'Imports',
+            'audit_logs' => 'Audit Logs',
+        ],
+    ];
+
+    /**
      * Show the data cleanup confirmation page
      */
     public function index()
     {
-        // Get counts for display
-        $counts = [
-            'jobs' => Job::count(),
-            'job_invoices' => JobInvoice::count(),
-            'bookings' => Booking::count(),
-            'pdi_records' => PdiRecord::count(),
-            'towing_records' => TowingRecord::count(),
-            'vehicles' => Vehicle::count(),
-            'remarks' => Remark::count(),
-            'imports' => Import::count(),
-            'audit_logs' => AuditLog::count(),
-        ];
+        $counts = [];
+        $totalRecords = 0;
+        
+        foreach ($this->tableGroups as $group => $tables) {
+            foreach ($tables as $table => $label) {
+                try {
+                    $count = DB::table($table)->count();
+                    $counts[$table] = $count;
+                    $totalRecords += $count;
+                } catch (\Exception $e) {
+                    $counts[$table] = 0; // Table might not exist
+                }
+            }
+        }
 
-        $totalRecords = array_sum($counts);
-
-        return view('admin.data-cleanup.index', compact('counts', 'totalRecords'));
+        $tableGroups = $this->tableGroups;
+        
+        return view('admin.data-cleanup.index', compact('counts', 'totalRecords', 'tableGroups'));
     }
 
     /**
@@ -56,53 +79,41 @@ class DataCleanupController extends Controller
 
         try {
             // Disable foreign key checks temporarily
-            // Note: TRUNCATE auto-commits so we can't use transactions with it
             DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
-            // Clean selected tables
-            if (in_array('remarks', $tablesToClean)) {
-                $results['remarks'] = Remark::count();
-                DB::table('remarks')->truncate();
-            }
+            // Define proper order to avoid FK issues (child tables first)
+            $cleanOrder = [
+                'remarks',
+                'job_invoices',
+                'customer_merge_logs',
+                'dismissed_duplicate_groups',
+                'notifications',
+                'user_sessions',
+                'saved_reports',
+                'customer_vehicles',
+                'customers',
+                'jobs',
+                'bookings',
+                'pdi_records',
+                'towing_records',
+                'vehicles',
+                'imports',
+                'audit_logs',
+            ];
 
-            if (in_array('job_invoices', $tablesToClean)) {
-                $results['job_invoices'] = JobInvoice::count();
-                DB::table('job_invoices')->truncate();
-            }
-
-            if (in_array('jobs', $tablesToClean)) {
-                $results['jobs'] = Job::count();
-                DB::table('jobs')->truncate();
-            }
-
-            if (in_array('bookings', $tablesToClean)) {
-                $results['bookings'] = Booking::count();
-                DB::table('bookings')->truncate();
-            }
-
-            if (in_array('pdi_records', $tablesToClean)) {
-                $results['pdi_records'] = PdiRecord::count();
-                DB::table('pdi_records')->truncate();
-            }
-
-            if (in_array('towing_records', $tablesToClean)) {
-                $results['towing_records'] = TowingRecord::count();
-                DB::table('towing_records')->truncate();
-            }
-
-            if (in_array('vehicles', $tablesToClean)) {
-                $results['vehicles'] = Vehicle::count();
-                DB::table('vehicles')->truncate();
-            }
-
-            if (in_array('imports', $tablesToClean)) {
-                $results['imports'] = Import::count();
-                DB::table('imports')->truncate();
-            }
-
-            if (in_array('audit_logs', $tablesToClean)) {
-                $results['audit_logs'] = AuditLog::count();
-                DB::table('audit_logs')->truncate();
+            foreach ($cleanOrder as $table) {
+                if (in_array($table, $tablesToClean)) {
+                    try {
+                        $count = DB::table($table)->count();
+                        if ($count > 0) {
+                            DB::table($table)->truncate();
+                            $results[$table] = $count;
+                        }
+                    } catch (\Exception $e) {
+                        // Table might not exist, skip silently
+                        Log::warning("Could not clean table {$table}: " . $e->getMessage());
+                    }
+                }
             }
 
             // Re-enable foreign key checks
@@ -116,7 +127,7 @@ class DataCleanupController extends Controller
 
             $totalDeleted = array_sum($results);
             return redirect()->route('admin.data-cleanup.index')
-                ->with('success', "Data cleanup completed! Deleted {$totalDeleted} records from " . count($tablesToClean) . " table(s).");
+                ->with('success', "Data cleanup completed! Deleted {$totalDeleted} records from " . count($results) . " table(s).");
 
         } catch (\Exception $e) {
             // Re-enable foreign key checks in case of error

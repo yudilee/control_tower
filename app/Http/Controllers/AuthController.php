@@ -28,11 +28,16 @@ class AuthController extends Controller
 
         $credentials = $request->only('email', 'password');
         $loginSource = $request->input('login_source');
+        $user = null;
 
         if ($loginSource === 'local') {
-            if (Auth::attempt($credentials, $request->boolean('remember'))) {
-                $request->session()->regenerate();
-                return redirect()->intended(route('dashboard'));
+            // Local authentication - verify credentials manually first
+            $user = User::where('email', $request->email)->first();
+            
+            if (!$user || !Hash::check($request->password, $user->password)) {
+                return back()->withErrors([
+                    'email' => 'The provided credentials do not match our records.',
+                ])->onlyInput('email');
             }
         } else {
             // LDAP Login
@@ -50,11 +55,7 @@ class AuthController extends Controller
 
                     if ($bind) {
                         // 2. Search for user DN
-                        // Replace %s in filter with username/email
                         $username = $request->email;
-                        // If email is provided, you might want to extract username part or use entire email depending on LDAP config
-                        // For this example, assuming input is username or email matches filter
-                        
                         $filter = sprintf($server->user_filter, $username);
                         $results = $ldapService->search($server->base_dn, $filter);
 
@@ -71,26 +72,18 @@ class AuthController extends Controller
 
                             // 3. Bind with found User DN and Password
                             if ($ldapService->bind($userDn, $request->password)) {
-                                // Auth Successful
-                                
-                                // Sync/Create Local User
-                                // Extract attributes - highly dependent on LDAP schema (AD vs OpenLDAP vs Zimbra)
-                                // Trying common attributes
+                                // Auth Successful - Sync/Create Local User
                                 $cn = $entry['cn'][0] ?? $username;
-                                $mail = $entry['mail'][0] ?? $username . '@example.com'; // Fallback if no mail
+                                $mail = $entry['mail'][0] ?? $username . '@example.com';
 
                                 $user = User::updateOrCreate(
                                     ['email' => $mail],
                                     [
                                         'name' => $cn,
-                                        'password' => Hash::make(\Illuminate\Support\Str::random(32)), // Random pass for local db
+                                        'password' => Hash::make(\Illuminate\Support\Str::random(32)),
                                         'email_verified_at' => now(),
                                     ]
                                 );
-
-                                Auth::login($user, $request->boolean('remember'));
-                                $request->session()->regenerate();
-                                return redirect()->intended(route('dashboard'));
                             }
                         }
                     }
@@ -98,9 +91,41 @@ class AuthController extends Controller
             }
         }
 
+        // If user found and authenticated
+        if ($user) {
+            // Check if 2FA is enabled
+            if ($user->two_factor_enabled) {
+                // Store user ID in session for 2FA challenge
+                $request->session()->put('2fa_user_id', $user->id);
+                $request->session()->put('2fa_remember', $request->boolean('remember'));
+                return redirect()->route('2fa.challenge');
+            }
+            
+            // No 2FA - complete login
+            $this->completeLogin($user, $request);
+            return redirect()->intended(route('dashboard'));
+        }
+
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
+    }
+
+    /**
+     * Complete login and record session
+     */
+    protected function completeLogin($user, Request $request): void
+    {
+        Auth::login($user, $request->boolean('remember') ?? session('2fa_remember', false));
+        $request->session()->regenerate();
+        
+        // Record session for session management
+        \App\Models\UserSession::recordLogin(
+            $user->id,
+            session()->getId(),
+            $request->ip(),
+            $request->userAgent()
+        );
     }
 
     public function showRegister()

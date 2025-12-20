@@ -309,4 +309,45 @@ class JobController extends Controller
         return redirect()->route('jobs.show', $job)
             ->with('success', 'Order & Parts updated successfully.');
     }
+
+    /**
+     * Bulk update work status or add bulk remarks
+     */
+    public function bulkUpdate(Request $request)
+    {
+        $request->validate([
+            'job_ids' => 'required|array',
+            'job_ids.*' => 'exists:jobs,id',
+            'action' => 'required|in:work_status,remark',
+        ]);
+
+        $jobIds = $request->input('job_ids');
+        $action = $request->input('action');
+        $user = auth()->user();
+        $count = count($jobIds);
+
+        if ($action === 'work_status') {
+            $request->validate(['work_status' => 'required|string']);
+            $workStatus = $request->input('work_status');
+            
+            Job::whereIn('id', $jobIds)->update(['work_status' => $workStatus]);
+            
+            return redirect()->back()->with('success', "Updated work status to '{$workStatus}' for {$count} jobs.");
+        }
+
+        if ($action === 'remark') {
+            $request->validate(['remark_text' => 'required|string']);
+            $remarkText = $request->input('remark_text');
+            
+            $jobs = Job::whereIn('id', $jobIds)->get();
+            foreach ($jobs as $job) {
+                $job->addRemark($remarkText, $user?->name, $user?->id);
+            }
+            
+            return redirect()->back()->with('success', "Added remark to {$count} jobs.");
+        }
+
+        return redirect()->back()->with('error', 'Invalid action.');
+    }
 }
+

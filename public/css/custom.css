@@ -509,3 +509,258 @@ input:checked+.slider:before {
     align-items: center;
     gap: 10px;
 }
+
+/* ========================================
+   MOBILE RESPONSIVE STYLES
+   ======================================== */
+
+/* Mobile sidebar toggle button */
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1001;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--hartono-teal);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    font-size: 1.5rem;
+}
+
+/* Mobile sidebar overlay */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+/* PWA Install Button */
+#pwaInstallBtn {
+    display: none;
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    z-index: 1000;
+}
+
+/* Tablet and below */
+@media (max-width: 991.98px) {
+    :root {
+        --sidebar-width: 280px;
+    }
+
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    .mobile-menu-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sidebar-overlay.show {
+        display: block;
+    }
+
+    /* Improve touch targets */
+    .btn {
+        min-height: 44px;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .nav-link {
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+    }
+
+    .form-control,
+    .form-select {
+        min-height: 44px;
+        font-size: 16px;
+        /* Prevent iOS zoom on focus */
+    }
+
+    /* Stack cards vertically */
+    .stat-card-modern {
+        margin-bottom: 1rem;
+    }
+
+    /* Smaller page header */
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 1rem;
+    }
+}
+
+/* Mobile phones */
+@media (max-width: 575.98px) {
+    .main-content {
+        padding: 1rem !important;
+    }
+
+    .page-header {
+        padding: 0.75rem 0;
+    }
+
+    .page-header h1 {
+        font-size: 1.25rem;
+    }
+
+    /* Card adjustments */
+    .card {
+        border-radius: 12px;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    /* Table horizontal scroll */
+    .table-responsive {
+        margin: 0 -1rem;
+        padding: 0 1rem;
+    }
+
+    /* Smaller stat cards */
+    .stat-card-modern {
+        padding: 1rem;
+    }
+
+    .stat-card-modern .stat-value {
+        font-size: 1.5rem;
+    }
+
+    /* Bottom safe area for iOS */
+    body {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Hide some columns on mobile */
+    .table [data-col="address"],
+    .table [data-col="chassis"],
+    .table [data-col="account"],
+    .table [data-col="first_reg"],
+    .table [data-col="technician"],
+    .table [data-col="block"],
+    .table [data-col="job_type"],
+    .table [data-col="pay_type"],
+    .table [data-col="type_sale"],
+    .table [data-col="job_desc"],
+    .table [data-col="labour"],
+    .table [data-col="part"],
+    .table [data-col="estimated"],
+    .table [data-col="inv_amt"],
+    .table [data-col="inv_ppn"],
+    .table [data-col="first_remark"] {
+        display: none !important;
+    }
+
+    /* Dropdown menus full width */
+    .dropdown-menu {
+        min-width: 280px !important;
+    }
+
+    /* Search bar improvements */
+    #globalSearchWrapper {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    #globalSearchResults {
+        left: 0;
+        right: 0;
+        max-width: 100vw;
+    }
+
+    /* Notification dropdown */
+    #notificationDropdown+.dropdown-menu {
+        width: calc(100vw - 40px) !important;
+        max-width: 350px;
+    }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+
+    /* Larger tap targets */
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    /* Remove hover effects that don't work on touch */
+    .table-hover tbody tr:hover {
+        background-color: inherit;
+    }
+
+    /* Active state for touch feedback */
+    .btn:active,
+    .nav-link:active {
+        transform: scale(0.98);
+        opacity: 0.9;
+    }
+
+    /* Scrollable areas have momentum */
+    .table-responsive,
+    .overflow-auto {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Landscape phone adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+    .sidebar {
+        overflow-y: auto;
+    }
+
+    .sidebar .brand {
+        padding: 0.75rem 1rem;
+    }
+
+    .sidebar .nav-link {
+        padding: 0.5rem 1rem;
+    }
+}
+
+/* Print styles - hide non-essential elements */
+@media print {
+
+    .sidebar,
+    .mobile-menu-toggle,
+    #pwaInstallBtn,
+    .btn,
+    .dropdown {
+        display: none !important;
+    }
+
+    .main-content {
+        margin: 0 !important;
+        width: 100% !important;
+    }
+}

@@ -16,8 +16,7 @@ class ReportController extends Controller
     public function uninvoiced(Request $request)
     {
         $query = Job::with('vehicle')
-            ->uninvoiced()
-            ->latest('job_date');
+            ->uninvoiced();
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -35,6 +34,33 @@ class ReportController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('job_date', '<=', $request->date_to);
         }
+        
+        // New filters
+        if ($request->filled('franchise')) {
+            $query->where('franchise', $request->franchise);
+        }
+        if ($request->filled('service_advisor')) {
+            $query->where('service_advisor', $request->service_advisor);
+        }
+        if ($request->filled('foreman')) {
+            $query->where('foreman', $request->foreman);
+        }
+        if ($request->filled('work_status')) {
+            $query->where('work_status', $request->work_status);
+        }
+        if ($request->filled('need_part')) {
+            $query->where('need_part', $request->need_part == '1');
+        }
+        
+        // Sorting
+        $sortField = $request->input('sort', 'job_date');
+        $sortDir = $request->input('dir', 'desc');
+        $allowedSorts = ['job_number', 'plate_number', 'service_advisor', 'foreman', 'job_date', 'total_sales', 'labour_sales', 'part_sales', 'work_status', 'latest_remark_at'];
+        if (in_array($sortField, $allowedSorts)) {
+            $query->orderBy($sortField, $sortDir === 'asc' ? 'asc' : 'desc');
+        } else {
+            $query->latest('job_date');
+        }
 
         $jobs = $query->paginate(20);
 
@@ -45,8 +71,7 @@ class ReportController extends Controller
     {
         $query = Job::with(['vehicle', 'invoices'])
             ->withCount('invoices')
-            ->invoiced()
-            ->latest('invoiced_at');
+            ->invoiced();
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -78,6 +103,16 @@ class ReportController extends Controller
         }
         if ($request->filled('service_advisor')) {
             $query->where('service_advisor', $request->service_advisor);
+        }
+        
+        // Sorting
+        $sortField = $request->input('sort', 'invoice_date');
+        $sortDir = $request->input('dir', 'desc');
+        $allowedSorts = ['job_number', 'plate_number', 'service_advisor', 'foreman', 'job_date', 'invoice_number', 'invoice_date', 'inv_ppn_meterai'];
+        if (in_array($sortField, $allowedSorts)) {
+            $query->orderBy($sortField, $sortDir === 'asc' ? 'asc' : 'desc');
+        } else {
+            $query->latest('invoiced_at');
         }
 
         $jobs = $query->paginate(50)->withQueryString();
@@ -358,6 +393,120 @@ class ReportController extends Controller
         return view('reports.needs_parts', compact('jobs'));
     }
 
+    /**
+     * Aging Report - Jobs grouped by age with color-coded thresholds
+     */
+    public function aging(Request $request)
+    {
+        $query = Job::with('vehicle')->uninvoiced();
+        
+        // Apply filters
+        if ($request->filled('service_advisor')) {
+            $query->where('service_advisor', $request->service_advisor);
+        }
+        if ($request->filled('foreman')) {
+            $query->where('foreman', $request->foreman);
+        }
+        if ($request->filled('franchise')) {
+            $query->where('franchise', $request->franchise);
+        }
+        
+        $allJobs = $query->get();
+        
+        // Group by age brackets
+        $now = now();
+        $agingGroups = [
+            '0-7' => ['label' => '0-7 Days', 'color' => 'success', 'icon' => 'check-circle', 'jobs' => collect()],
+            '8-14' => ['label' => '8-14 Days', 'color' => 'warning', 'icon' => 'exclamation-triangle', 'jobs' => collect()],
+            '15-30' => ['label' => '15-30 Days', 'color' => 'orange', 'icon' => 'clock-history', 'jobs' => collect()],
+            '30+' => ['label' => '30+ Days', 'color' => 'danger', 'icon' => 'exclamation-octagon', 'jobs' => collect()],
+        ];
+        
+        foreach ($allJobs as $job) {
+            $daysOld = $job->job_date ? $now->diffInDays($job->job_date) : 999;
+            
+            if ($daysOld <= 7) {
+                $agingGroups['0-7']['jobs']->push($job);
+            } elseif ($daysOld <= 14) {
+                $agingGroups['8-14']['jobs']->push($job);
+            } elseif ($daysOld <= 30) {
+                $agingGroups['15-30']['jobs']->push($job);
+            } else {
+                $agingGroups['30+']['jobs']->push($job);
+            }
+        }
+        
+        // Statistics
+        $totalJobs = $allJobs->count();
+        $totalSales = $allJobs->sum('total_sales');
+        $avgAge = $allJobs->avg(fn($j) => $j->job_date ? $now->diffInDays($j->job_date) : 0);
+        
+        // Filter options
+        $filterOptions = [
+            'service_advisor' => Job::uninvoiced()->whereNotNull('service_advisor')->distinct()->pluck('service_advisor')->sort()->values()->toArray(),
+            'foreman' => Job::uninvoiced()->whereNotNull('foreman')->distinct()->pluck('foreman')->sort()->values()->toArray(),
+            'franchise' => ['PC', 'CV'],
+        ];
+        
+        return view('reports.aging', compact('agingGroups', 'totalJobs', 'totalSales', 'avgAge', 'filterOptions'));
+    }
+
+    /**
+     * SA Performance Dashboard - Metrics per Service Advisor
+     */
+    public function saPerformance(Request $request)
+    {
+        $dateFrom = $request->input('date_from', now()->subDays(30)->format('Y-m-d'));
+        $dateTo = $request->input('date_to', now()->format('Y-m-d'));
+        
+        // Get all jobs in date range
+        $query = Job::whereBetween('job_date', [$dateFrom, $dateTo]);
+        
+        if ($request->filled('franchise')) {
+            $query->where('franchise', $request->franchise);
+        }
+        
+        $jobs = $query->get();
+        
+        // Group by Service Advisor
+        $saStats = $jobs->groupBy('service_advisor')->map(function ($saJobs, $saName) {
+            $invoiced = $saJobs->where('status', 'invoiced');
+            $uninvoiced = $saJobs->where('status', '!=', 'invoiced');
+            
+            // Calculate turnaround (avg days from job_date to invoiced_at)
+            $avgTurnaround = $invoiced->filter(fn($j) => $j->job_date && $j->invoiced_at)
+                ->avg(fn($j) => $j->invoiced_at->diffInDays($j->job_date));
+            
+            return [
+                'name' => $saName ?: 'Unassigned',
+                'total_jobs' => $saJobs->count(),
+                'invoiced_count' => $invoiced->count(),
+                'uninvoiced_count' => $uninvoiced->count(),
+                'total_sales' => $invoiced->sum('inv_ppn_meterai') ?: $invoiced->sum('total_sales'),
+                'uninvoiced_sales' => $uninvoiced->sum('total_sales'),
+                'avg_turnaround' => round($avgTurnaround ?? 0, 1),
+                'completion_rate' => $saJobs->count() > 0 ? round(($invoiced->count() / $saJobs->count()) * 100, 1) : 0,
+            ];
+        })->sortByDesc('total_sales')->values();
+        
+        // Overall stats
+        $overallStats = [
+            'total_jobs' => $jobs->count(),
+            'total_invoiced' => $jobs->where('status', 'invoiced')->count(),
+            'total_sales' => $jobs->where('status', 'invoiced')->sum('inv_ppn_meterai') ?: $jobs->where('status', 'invoiced')->sum('total_sales'),
+            'avg_turnaround' => round($saStats->avg('avg_turnaround'), 1),
+        ];
+        
+        // For chart data
+        $chartData = [
+            'labels' => $saStats->take(10)->pluck('name')->toArray(),
+            'sales' => $saStats->take(10)->pluck('total_sales')->toArray(),
+            'jobs' => $saStats->take(10)->pluck('total_jobs')->toArray(),
+        ];
+        
+        return view('reports.sa-performance', compact('saStats', 'overallStats', 'chartData', 'dateFrom', 'dateTo'));
+    }
+
     public function customerMerges(Request $request)
     {
         $query = \App\Models\CustomerMergeLog::orderBy('created_at', 'desc');
@@ -515,47 +664,127 @@ class ReportController extends Controller
 
     public function exportUninvoiced(Request $request)
     {
-        $jobs = Job::with('vehicle')
+        $format = $request->input('format', 'xlsx');
+        $selectedColumns = $request->input('columns', ['job_number', 'plate_number', 'service_advisor', 'job_date', 'total_sales', 'work_status', 'latest_remark']);
+        
+        // Build query with filters
+        $query = Job::with('vehicle')
             ->uninvoiced()
-            ->latest('job_date')
-            ->get();
+            ->latest('job_date');
 
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('job_number', 'like', "%{$search}%")
+                  ->orWhere('plate_number', 'like', "%{$search}%")
+                  ->orWhere('latest_remark', 'like', "%{$search}%");
+            });
+        }
+        if ($request->filled('date_from')) $query->whereDate('job_date', '>=', $request->date_from);
+        if ($request->filled('date_to')) $query->whereDate('job_date', '<=', $request->date_to);
+        if ($request->filled('franchise')) $query->where('franchise', $request->franchise);
+        if ($request->filled('service_advisor')) $query->where('service_advisor', $request->service_advisor);
+        if ($request->filled('foreman')) $query->where('foreman', $request->foreman);
+        if ($request->filled('work_status')) $query->where('work_status', $request->work_status);
+        if ($request->filled('need_part')) $query->where('need_part', $request->need_part == '1');
+        
+        $jobs = $query->get();
+        
+        // Column definitions
+        $allColumns = [
+            'job_number' => 'WIP',
+            'franchise' => 'Franchise',
+            'plate_number' => 'Plate No',
+            'customer_name' => 'Customer',
+            'service_advisor' => 'SA',
+            'foreman' => 'Foreman',
+            'job_date' => 'Job Date',
+            'total_sales' => 'Total Sales',
+            'labour_sales' => 'Labour',
+            'part_sales' => 'Parts',
+            'work_status' => 'Work Status',
+            'need_part' => 'Need Part',
+            'latest_remark' => 'Last Remark',
+            'latest_remark_at' => 'Remark Date',
+        ];
+        
+        // Filter to selected columns
+        $columns = array_intersect_key($allColumns, array_flip($selectedColumns));
+        
+        // Summary stats
+        $totalJobCount = $jobs->count();
+        $pcJobCount = $jobs->where('franchise', 'PC')->count();
+        $cvJobCount = $jobs->where('franchise', 'CV')->count();
+        $totalSales = $jobs->sum('total_sales');
+        $totalLabour = $jobs->sum('labour_sales');
+        $totalParts = $jobs->sum('part_sales');
+        
+        // Handle PDF format
+        if ($format === 'pdf') {
+            return view('reports.uninvoiced-pdf', [
+                'jobs' => $jobs,
+                'columns' => $columns,
+                'totalJobCount' => $totalJobCount,
+                'pcJobCount' => $pcJobCount,
+                'cvJobCount' => $cvJobCount,
+                'totalSales' => $totalSales,
+                'totalLabour' => $totalLabour,
+                'totalParts' => $totalParts,
+                'filters' => $request->only(['search', 'date_from', 'date_to', 'franchise', 'service_advisor', 'foreman', 'work_status', 'need_part']),
+            ]);
+        }
+        
+        // Excel/CSV export
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
-        $headers = ['No', 'Job Number', 'Plate Number', 'Service Advisor', 'Technician', 'Job Date', 'Promise Date', 'Amount', 'Work Status', 'Latest Remark', 'Last Updated'];
+        // Add headers
+        $headers = array_values($columns);
         $sheet->fromArray($headers, null, 'A1');
+        
+        // Style header
+        $headerStyle = [
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E9ECEF']],
+        ];
+        $sheet->getStyle('A1:' . chr(64 + count($columns)) . '1')->applyFromArray($headerStyle);
 
+        // Add data
         $row = 2;
-        foreach ($jobs as $index => $job) {
-            $sheet->fromArray([
-                $index + 1,
-                $job->job_number,
-                $job->plate_number,
-                $job->service_advisor,
-                $job->technician,
-                $job->job_date?->format('d/m/Y'),
-                $job->promise_date?->format('d/m/Y'),
-                $job->estimated_amount,
-                $job->work_status,
-                $job->latest_remark,
-                $job->latest_remark_at?->format('d/m/Y H:i'),
-            ], null, 'A' . $row);
+        foreach ($jobs as $job) {
+            $rowData = [];
+            foreach (array_keys($columns) as $col) {
+                $value = $job->{$col};
+                if ($col === 'job_date' && $value) $value = $value->format('d/m/Y');
+                if ($col === 'latest_remark_at' && $value) $value = $value->format('d/m/Y');
+                if (in_array($col, ['total_sales', 'labour_sales', 'part_sales']) && $value) $value = (float)$value;
+                if ($col === 'need_part') $value = $value ? 'Yes' : 'No';
+                $rowData[] = $value ?? '';
+            }
+            $sheet->fromArray($rowData, null, 'A' . $row);
             $row++;
         }
 
-        foreach (range('A', 'K') as $col) {
+        // Auto-size columns
+        foreach (range('A', chr(64 + count($columns))) as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
-        $filename = 'uninvoiced_jobs_' . date('Y-m-d_His') . '.xlsx';
-        $writer = new Xlsx($spreadsheet);
+        $filename = 'uninvoiced_jobs_' . date('Y-m-d_His');
+        
+        if ($format === 'csv') {
+            $writer = new Csv($spreadsheet);
+            $filename .= '.csv';
+            $contentType = 'text/csv';
+        } else {
+            $writer = new Xlsx($spreadsheet);
+            $filename .= '.xlsx';
+            $contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        }
         
         return response()->streamDownload(function () use ($writer) {
             $writer->save('php://output');
-        }, $filename, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        ]);
+        }, $filename, ['Content-Type' => $contentType]);
     }
 
     public function exportNeedsParts(Request $request)

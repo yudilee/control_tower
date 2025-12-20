@@ -169,6 +169,54 @@
     </div>
 </div>
 
+<!-- Charts Row -->
+@php
+    // Get last 7 days job data
+    $last7Days = collect();
+    for ($i = 6; $i >= 0; $i--) {
+        $date = now()->subDays($i);
+        $last7Days->push([
+            'date' => $date->format('d M'),
+            'invoiced' => \App\Models\Job::whereDate('invoiced_at', $date)->count(),
+            'new' => \App\Models\Job::whereDate('job_date', $date)->count(),
+        ]);
+    }
+    
+    // Work status for pie chart
+    $statusCounts = $workStatusOptions->map(fn($opt) => [
+        'label' => $opt->label,
+        'count' => $workStatusCounts->get($opt->value)?->count ?? 0,
+        'color' => match($opt->color) {
+            'primary' => '#0d6efd',
+            'success' => '#198754',
+            'warning' => '#ffc107',
+            'danger' => '#dc3545',
+            'info' => '#0dcaf0',
+            'secondary' => '#6c757d',
+            default => '#6c757d'
+        }
+    ])->filter(fn($s) => $s['count'] > 0);
+@endphp
+
+<div class="row g-4 mb-4">
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header bg-light"><i class="bi bi-graph-up me-2"></i>Job Trend (Last 7 Days)</div>
+            <div class="card-body">
+                <canvas id="jobTrendChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-light"><i class="bi bi-pie-chart me-2"></i>Work Status Distribution</div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <canvas id="statusPieChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Main Content Area -->
 <div class="row g-4 mb-5">
     <div class="col-md-8">
@@ -285,3 +333,68 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Job Trend Chart
+    const trendData = @json($last7Days);
+    new Chart(document.getElementById('jobTrendChart'), {
+        type: 'line',
+        data: {
+            labels: trendData.map(d => d.date),
+            datasets: [
+                {
+                    label: 'New Jobs',
+                    data: trendData.map(d => d.new),
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Invoiced',
+                    data: trendData.map(d => d.invoiced),
+                    borderColor: '#198754',
+                    backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+    
+    // Work Status Pie Chart
+    const statusData = @json($statusCounts->values());
+    if (statusData.length > 0) {
+        new Chart(document.getElementById('statusPieChart'), {
+            type: 'doughnut',
+            data: {
+                labels: statusData.map(s => s.label),
+                datasets: [{
+                    data: statusData.map(s => s.count),
+                    backgroundColor: statusData.map(s => s.color)
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'right' }
+                }
+            }
+        });
+    }
+});
+</script>
+@endpush
+
