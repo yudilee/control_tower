@@ -60,6 +60,41 @@ body {
     letter-spacing: 0.12em;
     padding: 1.5rem 1.5rem 0.5rem;
     font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: color 0.2s;
+}
+
+.sidebar .nav-section:hover {
+    color: var(--hartono-white);
+}
+
+.sidebar .nav-section .arr {
+    transition: transform 0.2s;
+}
+
+.sidebar .nav-section[aria-expanded="true"] .arr {
+    transform: rotate(180deg);
+}
+
+/* Custom Scrollbar for Sidebar */
+.overflow-auto::-webkit-scrollbar {
+    width: 4px;
+}
+
+.overflow-auto::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb {
+    background: rgba(0, 161, 170, 0.3);
+    border-radius: 4px;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 161, 170, 0.8);
 }
 
 .sidebar .nav-link {

@@ -95,7 +95,9 @@ class ReportController extends Controller
 
     public function exportInvoiced(Request $request)
     {
-        $query = Job::invoiced()->latest('invoice_date');
+        set_time_limit(0); // Unlimited execution time
+        ini_set('memory_limit', '-1'); // Unlimited memory
+        $query = Job::with('invoices')->invoiced()->latest('invoice_date');
 
         // Apply same filters
         if ($request->filled('search')) {
@@ -176,6 +178,9 @@ class ReportController extends Controller
                 .breakdown { margin: 15px 0; padding: 10px; background: #f9fafb; border-radius: 5px; }
                 .breakdown-title { font-weight: bold; margin-bottom: 8px; }
                 .breakdown-item { display: inline-block; padding: 5px 10px; margin: 3px; background: #e5e7eb; border-radius: 4px; }
+                .inv-detail { font-size: 8px; color: #555; margin-left: 5px; }
+                .inv-row { margin-bottom: 2px; }
+                .text-danger { color: red; }
                 h1 { font-size: 16px; margin-bottom: 5px; }
                 .subtitle { color: #666; margin-bottom: 15px; }
             </style></head><body>';
@@ -217,7 +222,7 @@ class ReportController extends Controller
             $html .= '</tr>';
             
             foreach ($jobs as $job) {
-                $html .= '<tr>';
+                $html .= '<tr style="' . ($job->invoices->count() > 1 ? 'background-color: #f8f9fa;' : '') . '">';
                 foreach ($selectedColumns as $key => $label) {
                     $value = $job->{$key};
                     if (in_array($key, ['job_date', 'date_in', 'date_out', 'invoice_date']) && $value) {
@@ -228,6 +233,22 @@ class ReportController extends Controller
                     $html .= '<td>' . e($value ?? '-') . '</td>';
                 }
                 $html .= '</tr>';
+                
+                // MULTI-INVOICE DETAIL (Simplified for performance)
+                if ($job->invoices->count() > 1) {
+                    $html .= '<tr><td colspan="' . count($selectedColumns) . '" style="padding: 2px 10px; background-color: #f8f9fa;">';
+                    $html .= '<div style="font-weight:bold; font-size:8px; margin-bottom:2px;">Invoice History:</div>';
+                    foreach ($job->invoices as $inv) {
+                        $isCN = $inv->invoice_type === 'credit_note';
+                        $class = $isCN ? 'text-danger' : '';
+                        $type = $isCN ? 'CN' : 'INV';
+                        $date = $inv->invoice_date?->format('d/m/Y');
+                        $amount = number_format($inv->inv_ppn_meterai, 0, ',', '.');
+                        
+                        $html .= "<div class='inv-row $class'>- $type <b>{$inv->invoice_number}</b> ($date) | {$inv->type_sale} | Rp $amount</div>";
+                    }
+                    $html .= '</td></tr>';
+                }
             }
             $html .= '</table></body></html>';
 
@@ -261,7 +282,41 @@ class ReportController extends Controller
                 $rowData[] = $value ?? '';
             }
             $sheet->fromArray($rowData, null, 'A' . $row);
+            $mainRow = $row;
             $row++;
+            
+            // MULTI-INVOICE ROWS FOR EXCEL
+            if ($job->invoices->count() > 1) {
+                // Style the main row to indicate it has children
+                $sheet->getStyle('A' . $mainRow . ':' . chr(64 + count($selectedColumns)) . $mainRow)
+                      ->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                      ->getStartColor()->setARGB('FFE2E8F0');
+                
+                // Add header row for details
+                $sheet->setCellValue('B' . $row, 'Invoice #');
+                $sheet->setCellValue('C' . $row, 'Date');
+                $sheet->setCellValue('D' . $row, 'Type');
+                $sheet->setCellValue('E' . $row, 'Sale Type');
+                $sheet->setCellValue('F' . $row, 'Amount');
+                $sheet->getStyle('B' . $row . ':F' . $row)->getFont()->setBold(true)->setSize(9);
+                $row++;
+
+                foreach ($job->invoices as $inv) {
+                    $sheet->setCellValue('B' . $row, $inv->invoice_number);
+                    $sheet->setCellValue('C' . $row, $inv->invoice_date?->format('Y-m-d'));
+                    $sheet->setCellValue('D' . $row, $inv->invoice_type === 'credit_note' ? 'CN' : 'INV');
+                    $sheet->setCellValue('E' . $row, $inv->type_sale ?? '-');
+                    $sheet->setCellValue('F' . $row, $inv->inv_ppn_meterai);
+                    
+                    if ($inv->invoice_type === 'credit_note') {
+                        $sheet->getStyle('B' . $row . ':F' . $row)->getFont()->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color(\PhpOffice\PhpSpreadsheet\Style\Color::COLOR_RED));
+                    } else {
+                         $sheet->getStyle('B' . $row . ':F' . $row)->getFont()->setItalic(true)->setSize(9);
+                    }
+                    $row++;
+                }
+                $row++; // Add empty spacing row
+            }
         }
 
         foreach (range('A', chr(64 + count($selectedColumns))) as $col) {
