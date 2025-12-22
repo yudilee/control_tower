@@ -603,6 +603,148 @@
             }
         });
     </script>
+    
+    @auth
+    <!-- Laravel Echo for Real-Time Notifications -->
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js"></script>
+    <script>
+    (function() {
+        // Reverb/Pusher configuration
+        const reverbConfig = {
+            key: '{{ env("REVERB_APP_KEY", "control-tower-key") }}',
+            wsHost: '{{ env("REVERB_HOST", "localhost") }}',
+            wsPort: {{ env("REVERB_PORT", 8080) }},
+            wssPort: {{ env("REVERB_PORT", 443) }},
+            forceTLS: '{{ env("REVERB_SCHEME", "http") }}' === 'https',
+            enabledTransports: ['ws', 'wss'],
+            disableStats: true,
+        };
+        
+        // Only initialize if Reverb is configured
+        if (!reverbConfig.wsHost) {
+            console.log('[Echo] Reverb not configured, skipping real-time notifications');
+            return;
+        }
+        
+        try {
+            window.Echo = new Echo({
+                broadcaster: 'reverb',
+                ...reverbConfig,
+                authEndpoint: '/broadcasting/auth',
+            });
+            
+            const userId = {{ auth()->id() }};
+            
+            // Subscribe to private notification channel
+            window.Echo.private(`notifications.${userId}`)
+                .listen('.new-notification', (e) => {
+                    console.log('[Echo] New notification received:', e);
+                    
+                    // Update notification badge
+                    const badge = document.querySelector('#notificationDropdown .badge');
+                    if (badge) {
+                        const current = parseInt(badge.textContent) || 0;
+                        badge.textContent = current >= 9 ? '9+' : current + 1;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        // Create badge if it doesn't exist
+                        const btn = document.getElementById('notificationDropdown');
+                        if (btn) {
+                            const newBadge = document.createElement('span');
+                            newBadge.className = 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger';
+                            newBadge.style.fontSize = '0.6rem';
+                            newBadge.textContent = '1';
+                            btn.appendChild(newBadge);
+                        }
+                    }
+                    
+                    // Add notification to dropdown list
+                    const list = document.getElementById('notificationList');
+                    if (list) {
+                        const emptyMsg = list.querySelector('.text-center.text-muted');
+                        if (emptyMsg) emptyMsg.remove();
+                        
+                        const notifHtml = `
+                            <a href="${e.notification.link || '#'}" class="dropdown-item py-2 bg-light">
+                                <div class="d-flex align-items-start">
+                                    <div class="me-2">
+                                        <span class="badge bg-${e.notification.color} rounded-circle p-2">
+                                            <i class="bi bi-${e.notification.icon}"></i>
+                                        </span>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold small">${e.notification.title}</div>
+                                        <div class="text-muted small text-truncate" style="max-width: 220px;">${e.notification.message}</div>
+                                        <small class="text-muted">${e.notification.created_at}</small>
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">New</span>
+                                </div>
+                            </a>
+                        `;
+                        list.insertAdjacentHTML('afterbegin', notifHtml);
+                    }
+                    
+                    // Show toast notification
+                    showNotificationToast(e.notification);
+                });
+            
+            console.log('[Echo] Connected to Reverb, listening for notifications');
+            
+        } catch (err) {
+            console.warn('[Echo] Failed to initialize:', err.message);
+        }
+        
+        // Toast notification function
+        function showNotificationToast(notification) {
+            // Create toast container if not exists
+            let container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container position-fixed top-0 end-0 p-3';
+                container.style.zIndex = '9999';
+                document.body.appendChild(container);
+            }
+            
+            const toastId = 'toast-' + Date.now();
+            const toastHtml = `
+                <div id="${toastId}" class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header bg-${notification.color} text-white">
+                        <i class="bi bi-${notification.icon} me-2"></i>
+                        <strong class="me-auto">${notification.title}</strong>
+                        <small>just now</small>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${notification.message}
+                        ${notification.link ? `<div class="mt-2"><a href="${notification.link}" class="btn btn-sm btn-primary">View</a></div>` : ''}
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', toastHtml);
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                const toast = document.getElementById(toastId);
+                if (toast) {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 5000);
+            
+            // Play notification sound (optional)
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2telezeC2telezeC2telezeC');
+                audio.volume = 0.3;
+                audio.play().catch(() => {});
+            } catch (e) {}
+        }
+    })();
+    </script>
+    @endauth
+    
     @stack('scripts')
 </body>
 </html>

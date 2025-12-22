@@ -83,7 +83,7 @@ class Notification extends Model
             self::TYPE_SYSTEM => 'info-circle-fill',
         ];
 
-        return self::create([
+        $notification = self::create([
             'user_id' => $userId,
             'type' => $type,
             'title' => $title,
@@ -93,6 +93,11 @@ class Notification extends Model
             'color' => $color,
             'data' => $data,
         ]);
+
+        // Broadcast real-time notification via WebSocket
+        event(new \App\Events\NewNotification($notification));
+
+        return $notification;
     }
 
     /**

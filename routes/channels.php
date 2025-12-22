@@ -23,3 +23,8 @@ Broadcast::channel('job.{jobId}', function ($user, $jobId) {
     // In a more restrictive setup, you could check if the user has access to this job
     return $user !== null;
 });
+
+// Private notification channel - users can only listen to their own notifications
+Broadcast::channel('notifications.{userId}', function ($user, $userId) {
+    return (int) $user->id === (int) $userId;
+});
