@@ -19,7 +19,7 @@
                 <i class="bi bi-exclamation-triangle me-2"></i>Warning: This action is irreversible!
             </div>
             <div class="card-body">
-                <form action="{{ route('admin.data-cleanup.execute') }}" method="POST" id="cleanupForm">
+                <form action="{{ route('admin.data-cleanup.execute') }}" method="POST" id="cleanupForm" onsubmit="return confirmDelete();">
                     @csrf
                     
                     <div class="alert alert-warning">
@@ -140,50 +140,27 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const confirmInput = document.getElementById('confirmInput');
-    const deleteBtn = document.getElementById('deleteBtn');
-    const form = document.getElementById('cleanupForm');
     const selectAllBtn = document.getElementById('selectAll');
     const checkboxes = document.querySelectorAll('input[name="tables[]"]:not(:disabled)');
 
-    function updateButtonState() {
-        const hasChecked = document.querySelector('input[name="tables[]"]:checked') !== null;
-        const confirmMatches = confirmInput.value === 'DELETE ALL DATA';
-        deleteBtn.disabled = !(hasChecked && confirmMatches);
-        console.log('Button state:', {hasChecked, confirmMatches, disabled: deleteBtn.disabled});
+    // Select all toggle
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+            this.textContent = allChecked ? 'Select All' : 'Deselect All';
+        });
     }
-
-    // Listen to input changes
-    confirmInput.addEventListener('input', updateButtonState);
-    confirmInput.addEventListener('keyup', updateButtonState);
-
-    // Listen to checkbox changes
-    checkboxes.forEach(cb => {
-        cb.addEventListener('change', updateButtonState);
-    });
-
-    // Select all toggle (only enabled checkboxes)
-    selectAllBtn.addEventListener('click', function() {
-        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-        checkboxes.forEach(cb => cb.checked = !allChecked);
-        this.textContent = allChecked ? 'Select All' : 'Deselect All';
-        updateButtonState();
-    });
-
-    // Form submission
-    form.addEventListener('submit', function(e) {
-        const selected = document.querySelectorAll('input[name="tables[]"]:checked');
-        if (selected.length === 0) {
-            e.preventDefault();
-            alert('Please select at least one table to delete.');
-            return;
-        }
-        
-        if (!confirm('Are you absolutely sure?\n\nThis will permanently delete data from ' + selected.length + ' table(s).\n\nThis action CANNOT be undone!')) {
-            e.preventDefault();
-        }
-    });
 });
+
+function confirmDelete() {
+    var selected = document.querySelectorAll('input[name="tables[]"]:checked');
+    if (selected.length === 0) {
+        alert('Please select at least one table to delete.');
+        return false;
+    }
+    return confirm('Are you absolutely sure?\n\nThis will permanently delete data from ' + selected.length + ' table(s).\n\nThis action CANNOT be undone!');
+}
 </script>
 @endpush
 @endsection
