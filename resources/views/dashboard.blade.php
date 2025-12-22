@@ -196,6 +196,25 @@
             default => '#6c757d'
         }
     ])->filter(fn($s) => $s['count'] > 0);
+    
+    // SA Revenue (Top 5 for uninvoiced jobs)
+    $saRevenue = \App\Models\Job::uninvoiced()
+        ->selectRaw('service_advisor, SUM(COALESCE(total_sales, 0)) as revenue, COUNT(*) as job_count')
+        ->whereNotNull('service_advisor')
+        ->groupBy('service_advisor')
+        ->orderByDesc('revenue')
+        ->take(5)
+        ->get();
+    
+    // Job Aging breakdown (uninvoiced only)
+    $today = now()->startOfDay();
+    $agingData = [
+        ['label' => '< 3 days', 'count' => \App\Models\Job::uninvoiced()->where('job_date', '>', $today->copy()->subDays(3))->count(), 'color' => '#198754'],
+        ['label' => '3-7 days', 'count' => \App\Models\Job::uninvoiced()->whereBetween('job_date', [$today->copy()->subDays(7), $today->copy()->subDays(3)])->count(), 'color' => '#0dcaf0'],
+        ['label' => '7-14 days', 'count' => \App\Models\Job::uninvoiced()->whereBetween('job_date', [$today->copy()->subDays(14), $today->copy()->subDays(7)])->count(), 'color' => '#ffc107'],
+        ['label' => '14-30 days', 'count' => \App\Models\Job::uninvoiced()->whereBetween('job_date', [$today->copy()->subDays(30), $today->copy()->subDays(14)])->count(), 'color' => '#fd7e14'],
+        ['label' => '> 30 days', 'count' => \App\Models\Job::uninvoiced()->where('job_date', '<', $today->copy()->subDays(30))->count(), 'color' => '#dc3545'],
+    ];
 @endphp
 
 <div class="row g-4 mb-4">
@@ -212,6 +231,29 @@
             <div class="card-header bg-light"><i class="bi bi-pie-chart me-2"></i>Work Status Distribution</div>
             <div class="card-body d-flex align-items-center justify-content-center">
                 <canvas id="statusPieChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analytics Row 2: SA Revenue & Aging -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-light"><i class="bi bi-currency-dollar me-2"></i>Top 5 SA Revenue (Uninvoiced)</div>
+            <div class="card-body">
+                <canvas id="saRevenueChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-hourglass-split me-2"></i>Job Aging (Uninvoiced)</span>
+                <a href="{{ route('reports.aging') }}" class="btn btn-sm btn-outline-primary">Full Report</a>
+            </div>
+            <div class="card-body">
+                <canvas id="agingChart" height="200"></canvas>
             </div>
         </div>
     </div>
@@ -394,6 +436,63 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // SA Revenue Bar Chart
+    const saData = @json($saRevenue);
+    if (saData.length > 0) {
+        new Chart(document.getElementById('saRevenueChart'), {
+            type: 'bar',
+            data: {
+                labels: saData.map(s => s.service_advisor),
+                datasets: [{
+                    label: 'Revenue (IDR)',
+                    data: saData.map(s => parseFloat(s.revenue)),
+                    backgroundColor: ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#dc3545'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => 'IDR ' + ctx.raw.toLocaleString('id-ID')
+                        }
+                    }
+                },
+                scales: {
+                    x: { 
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (v) => 'IDR ' + (v / 1000000).toFixed(1) + 'M'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Job Aging Doughnut Chart
+    const agingData = @json($agingData);
+    new Chart(document.getElementById('agingChart'), {
+        type: 'doughnut',
+        data: {
+            labels: agingData.map(a => a.label),
+            datasets: [{
+                data: agingData.map(a => a.count),
+                backgroundColor: agingData.map(a => a.color),
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'right' }
+            }
+        }
+    });
 });
 </script>
 @endpush
