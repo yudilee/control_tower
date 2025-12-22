@@ -29,6 +29,7 @@ class User extends Authenticatable
         'vehicle_preferences',
         'customer_preferences',
         'role',
+        'auth_source',
     ];
 
     /**

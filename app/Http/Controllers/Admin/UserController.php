@@ -114,10 +114,35 @@ class UserController extends Controller
                 'name' => $validated['name'],
                 'role' => $validated['role'],
                 'password' => bcrypt(str()->random(32)), // Random password, user uses LDAP
+                'auth_source' => 'ldap', // Mark as LDAP user
             ]
         );
 
         return redirect()->route('admin.users.index')
             ->with('success', "Role '{$this->roles[$validated['role']]}' assigned to {$user->name}");
+    }
+
+    /**
+     * Delete an internal database user
+     */
+    public function destroy(User $user)
+    {
+        // Only allow deleting internal database users
+        if ($user->auth_source !== 'local') {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'Cannot delete LDAP users. Remove them from LDAP instead.');
+        }
+
+        // Cannot delete yourself
+        if ($user->id === auth()->id()) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'You cannot delete your own account.');
+        }
+
+        $name = $user->name;
+        $user->delete();
+
+        return redirect()->route('admin.users.index')
+            ->with('success', "User '{$name}' deleted successfully.");
     }
 }

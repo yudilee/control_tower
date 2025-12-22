@@ -35,8 +35,9 @@
                         <tr>
                             <th>Name</th>
                             <th>Email</th>
+                            <th>Source</th>
                             <th>Role</th>
-                            <th width="100">Actions</th>
+                            <th width="120">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -49,6 +50,13 @@
                                 @endif
                             </td>
                             <td class="text-muted">{{ $user->email }}</td>
+                            <td>
+                                @if($user->auth_source === 'local')
+                                    <span class="badge bg-secondary"><i class="bi bi-database me-1"></i>Internal</span>
+                                @else
+                                    <span class="badge bg-primary"><i class="bi bi-server me-1"></i>LDAP</span>
+                                @endif
+                            </td>
                             <td>
                                 @php
                                     $roleColors = [
@@ -70,11 +78,20 @@
                                 <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-primary">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                @if($user->auth_source === 'local' && $user->id !== auth()->id())
+                                <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete user {{ $user->name }}?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                                @endif
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="4" class="text-center text-muted py-4">No users found</td>
+                            <td colspan="5" class="text-center text-muted py-4">No users found</td>
                         </tr>
                         @endforelse
                     </tbody>
