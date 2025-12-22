@@ -94,7 +94,7 @@
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-danger" id="deleteBtn" data-bs-toggle="modal" data-bs-target="#confirmModal">
+                        <button type="button" class="btn btn-danger" id="deleteBtn" disabled data-bs-toggle="modal" data-bs-target="#confirmModal">
                             <i class="bi bi-trash me-1"></i>Delete Selected Data
                         </button>
                         <a href="{{ route('dashboard') }}" class="btn btn-secondary">Cancel</a>
@@ -183,8 +183,25 @@ document.addEventListener('DOMContentLoaded', function() {
             const allChecked = Array.from(checkboxes).every(cb => cb.checked);
             checkboxes.forEach(cb => cb.checked = !allChecked);
             this.textContent = allChecked ? 'Select All' : 'Deselect All';
+            updateButtonState();
         });
     }
+
+    // Enable/disable delete button based on confirmation text and selection
+    function updateButtonState() {
+        const hasChecked = document.querySelector('input[name="tables[]"]:checked') !== null;
+        const confirmMatches = confirmInput.value === 'DELETE ALL DATA';
+        deleteBtn.disabled = !(hasChecked && confirmMatches);
+    }
+
+    // Listen to confirmation input changes
+    confirmInput.addEventListener('input', updateButtonState);
+    confirmInput.addEventListener('keyup', updateButtonState);
+
+    // Listen to checkbox changes
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateButtonState);
+    });
 
     // When modal opens, validate and update count
     confirmModal.addEventListener('show.bs.modal', function(event) {
