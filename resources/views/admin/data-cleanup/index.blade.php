@@ -144,39 +144,42 @@ document.addEventListener('DOMContentLoaded', function() {
     const deleteBtn = document.getElementById('deleteBtn');
     const form = document.getElementById('cleanupForm');
     const selectAllBtn = document.getElementById('selectAll');
-    const checkboxes = document.querySelectorAll('input[name="tables[]"]');
+    const checkboxes = document.querySelectorAll('input[name="tables[]"]:not(:disabled)');
 
-    // Enable/disable delete button based on confirmation
-    confirmInput.addEventListener('input', function() {
-        const hasChecked = document.querySelector('input[name="tables[]"]:checked');
-        deleteBtn.disabled = this.value !== 'DELETE ALL DATA' || !hasChecked;
-    });
+    function updateButtonState() {
+        const hasChecked = document.querySelector('input[name="tables[]"]:checked') !== null;
+        const confirmMatches = confirmInput.value === 'DELETE ALL DATA';
+        deleteBtn.disabled = !(hasChecked && confirmMatches);
+        console.log('Button state:', {hasChecked, confirmMatches, disabled: deleteBtn.disabled});
+    }
 
-    // Also check when checkboxes change
+    // Listen to input changes
+    confirmInput.addEventListener('input', updateButtonState);
+    confirmInput.addEventListener('keyup', updateButtonState);
+
+    // Listen to checkbox changes
     checkboxes.forEach(cb => {
-        cb.addEventListener('change', function() {
-            const hasChecked = document.querySelector('input[name="tables[]"]:checked');
-            deleteBtn.disabled = confirmInput.value !== 'DELETE ALL DATA' || !hasChecked;
-        });
+        cb.addEventListener('change', updateButtonState);
     });
 
     // Select all toggle (only enabled checkboxes)
     selectAllBtn.addEventListener('click', function() {
-        const enabledCheckboxes = Array.from(checkboxes).filter(cb => !cb.disabled);
-        const allChecked = enabledCheckboxes.every(cb => cb.checked);
-        enabledCheckboxes.forEach(cb => cb.checked = !allChecked);
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        checkboxes.forEach(cb => cb.checked = !allChecked);
         this.textContent = allChecked ? 'Select All' : 'Deselect All';
-        
-        // Trigger change event
-        confirmInput.dispatchEvent(new Event('input'));
+        updateButtonState();
     });
 
-    // Final confirmation before submit
+    // Form submission
     form.addEventListener('submit', function(e) {
         const selected = document.querySelectorAll('input[name="tables[]"]:checked');
-        const count = selected.length;
+        if (selected.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one table to delete.');
+            return;
+        }
         
-        if (!confirm(`Are you absolutely sure?\n\nThis will permanently delete data from ${count} table(s).\n\nThis action CANNOT be undone!`)) {
+        if (!confirm('Are you absolutely sure?\n\nThis will permanently delete data from ' + selected.length + ' table(s).\n\nThis action CANNOT be undone!')) {
             e.preventDefault();
         }
     });
