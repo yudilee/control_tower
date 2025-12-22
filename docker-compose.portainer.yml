@@ -13,10 +13,48 @@ services:
     working_dir: /var/www
     volumes:
       - /opt/stacks/control_tower:/var/www
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
     environment:
       - APP_NAME=Control Tower
       - APP_ENV=production
-      - APP_DEBUG=true
+      - APP_DEBUG=false
+      - APP_URL=http://192.168.99.123:8080
+      - APP_KEY=base64:skgy8qUtTy+bih795lEc3f1H5V4DEtc5NbR3W2BHMNU=
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=control_tower
+      - DB_USERNAME=control_tower
+      - DB_PASSWORD=secret123
+      - PHP_MEMORY_LIMIT=512M
+      - PHP_MAX_EXECUTION_TIME=300
+    networks:
+      - control_tower_net
+    depends_on:
+      - db
+    command: >
+      bash -c "
+        apt-get update && apt-get install -y libpng-dev libonig-dev libxml2-dev libzip-dev libldap2-dev zip unzip git curl cron &&
+        docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip ldap &&
+        curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer &&
+        cd /var/www &&
+        composer install --no-dev --optimize-autoloader --no-interaction --no-scripts &&
+        chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache &&
+        php-fpm
+      "
+
+  # Laravel Scheduler (Cron)
+  scheduler:
+    image: php:8.2-cli
+    container_name: control_tower_scheduler
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - /opt/stacks/control_tower:/var/www
+    environment:
+      - APP_NAME=Control Tower
+      - APP_ENV=production
+      - APP_DEBUG=false
       - APP_URL=http://192.168.99.123:8080
       - APP_KEY=base64:skgy8qUtTy+bih795lEc3f1H5V4DEtc5NbR3W2BHMNU=
       - DB_CONNECTION=mysql
@@ -29,15 +67,15 @@ services:
       - control_tower_net
     depends_on:
       - db
+      - app
     command: >
       bash -c "
         apt-get update && apt-get install -y libpng-dev libonig-dev libxml2-dev libzip-dev libldap2-dev zip unzip git curl &&
         docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip ldap &&
-        curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer &&
+        echo 'Waiting for app container...' && sleep 30 &&
         cd /var/www &&
-        composer install --no-dev --optimize-autoloader --no-interaction &&
-        chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache &&
-        php-fpm
+        echo 'Starting Laravel Scheduler...' &&
+        while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done
       "
 
   # Nginx Web Server
