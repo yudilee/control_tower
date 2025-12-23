@@ -97,11 +97,9 @@
                     <label class="form-label">Work Status</label>
                     <select name="work_status" class="form-select">
                         <option value="">-- Select Status --</option>
-                        <option value="pending" {{ old('work_status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="in_progress" {{ old('work_status') == 'in_progress' ? 'selected' : '' }}>In Progress</option>
-                        <option value="waiting_parts" {{ old('work_status') == 'waiting_parts' ? 'selected' : '' }}>Waiting Parts</option>
-                        <option value="waiting_approval" {{ old('work_status') == 'waiting_approval' ? 'selected' : '' }}>Waiting Approval</option>
-                        <option value="completed" {{ old('work_status') == 'completed' ? 'selected' : '' }}>Completed</option>
+                        @foreach(\App\Models\DropdownOption::getOptions('work_status') as $opt)
+                        <option value="{{ $opt->value }}" {{ old('work_status') == $opt->value ? 'selected' : '' }}>{{ $opt->label }}</option>
+                        @endforeach
                     </select>
                 </div>
                 <div class="col-12">
