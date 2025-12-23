@@ -130,12 +130,18 @@
                         <td data-col="actions" onclick="event.stopPropagation()">
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ route('vehicles.show', $vehicle) }}" class="btn btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
+                                @if(auth()->user()?->canEdit())
                                 <form action="{{ route('vehicles.toggle-workshop', $vehicle) }}" method="POST" class="d-inline">
                                     @csrf
                                     <button type="submit" class="btn btn-outline-{{ $vehicle->is_in_workshop ? 'warning' : 'success' }}" title="Toggle Workshop">
                                         <i class="bi bi-{{ $vehicle->is_in_workshop ? 'box-arrow-right' : 'box-arrow-in-right' }}"></i>
                                     </button>
                                 </form>
+                                @else
+                                <button type="button" class="btn btn-outline-secondary" disabled title="You don't have permission to change workshop status">
+                                    <i class="bi bi-{{ $vehicle->is_in_workshop ? 'box-arrow-right' : 'box-arrow-in-right' }}"></i>
+                                </button>
+                                @endif
                             </div>
                         </td>
                     </tr>
