@@ -176,106 +176,27 @@ class CustomerController extends Controller
     }
 
     /**
-     * Find and show duplicate/similar customer names
-    /**
-     * Find and show duplicate/similar customer names
+     * Find and show duplicate/similar customer names - loads from pre-calculated table
      */
     public function duplicates()
     {
-        // Get all unique customer names
-        $allNames = DB::table(
-            DB::raw("(
-                SELECT DISTINCT customer_name as name FROM vehicles WHERE customer_name IS NOT NULL AND customer_name != ''
-                UNION
-                SELECT DISTINCT customer_name as name FROM jobs WHERE customer_name IS NOT NULL AND customer_name != ''
-            ) as customers")
-        )
-        ->orderBy('name')
-        ->pluck('name')
-        ->toArray();
+        // Load from cached table (instant loading!)
+        $groups = \App\Models\DuplicateCustomerGroup::pending()
+            ->orderByDesc('dms_count')
+            ->orderByDesc('user_count')
+            ->get();
 
-        // Find similar names (potential duplicates)
-        $duplicateGroups = [];
-        $processed = [];
-
-        foreach ($allNames as $name1) {
-            if (in_array($name1, $processed)) {
-                continue;
-            }
-
-            $similar = [$name1];
-            $normalized1 = $this->normalizeForComparison($name1);
-
-            foreach ($allNames as $name2) {
-                if ($name1 === $name2 || in_array($name2, $processed)) {
-                    continue;
-                }
-
-                $normalized2 = $this->normalizeForComparison($name2);
-                
-                // Check similarity using Levenshtein distance
-                $levenshtein = levenshtein($normalized1, $normalized2);
-                $maxLen = max(strlen($normalized1), strlen($normalized2));
-                $similarity = $maxLen > 0 ? (1 - $levenshtein / $maxLen) * 100 : 0;
-
-                // Also check similar_text percentage
-                similar_text($normalized1, $normalized2, $percentSimilar);
-
-                // Require BOTH methods show high similarity (>90%) for more accuracy
-                // OR both >85% to reduce false positives like "Adi" vs "Andi"
-                if (($similarity > 90 && $percentSimilar > 85) || ($similarity > 85 && $percentSimilar > 90)) {
-                    $similar[] = $name2;
-                    $processed[] = $name2;
-                }
-            }
-
-            $processed[] = $name1;
-
-            // Only include groups with 2+ names
-            if (count($similar) >= 2) {
-                // Skip if this group was previously dismissed
-                if (\App\Models\DismissedDuplicateGroup::isDismissed($similar)) {
-                    continue;
-                }
-
-                // Get counts and SOURCE for each name
-                $groupWithCounts = [];
-                $dmsSourceCount = 0;
-                $userSourceCount = 0;
-
-                foreach ($similar as $n) {
-                    $source = $this->detectDuplicateSource($n);
-                    
-                    // Count source types for classification
-                    if ($source === 'dms_import') {
-                        $dmsSourceCount++;
-                    } else {
-                        $userSourceCount++;
-                    }
-
-                    $groupWithCounts[] = [
-                        'name' => $n,
-                        'job_count' => Job::where('customer_name', $n)->count(),
-                        'vehicle_count' => Vehicle::where('customer_name', $n)->count(),
-                        'source' => $source,
-                        'source_label' => $this->getSourceLabel($source),
-                    ];
-                }
-
-                // Classify the group: 
-                // - If 2+ entries from DMS (invoiced/uninvoiced) = DMS_ISSUE (fix in main system)
-                // - If any entry from progress/manual = USER_MISTAKE
-                $groupClassification = $dmsSourceCount >= 2 ? 'DMS_ISSUE' : 'USER_MISTAKE';
-
-                $duplicateGroups[] = [
-                    'names' => $similar, // Keep names array for dismiss functionality
-                    'entries' => $groupWithCounts,
-                    'classification' => $groupClassification,
-                    'dms_count' => $dmsSourceCount,
-                    'user_count' => $userSourceCount,
-                ];
-            }
-        }
+        // Convert to format expected by view
+        $duplicateGroups = $groups->map(function ($group) {
+            return [
+                'id' => $group->id,
+                'names' => $group->names,
+                'entries' => $group->entries,
+                'classification' => $group->classification,
+                'dms_count' => $group->dms_count,
+                'user_count' => $group->user_count,
+            ];
+        })->toArray();
 
         return view('customers.duplicates', [
             'duplicateGroups' => $duplicateGroups,
@@ -296,6 +217,12 @@ class CustomerController extends Controller
 
         $names = $request->input('names');
         
+        // Update cached table
+        $hash = \App\Models\DuplicateCustomerGroup::generateHash($names);
+        \App\Models\DuplicateCustomerGroup::where('group_hash', $hash)
+            ->update(['status' => 'dismissed']);
+        
+        // Also save to old dismissed table for backward compatibility
         \App\Models\DismissedDuplicateGroup::dismiss(
             $names, 
             'not_duplicate',
@@ -358,6 +285,11 @@ class CustomerController extends Controller
             $totalJobsUpdated += $jobsCount;
             $totalVehiclesUpdated += $vehiclesCount;
         }
+
+        // Update cached table - mark as merged
+        $hash = \App\Models\DuplicateCustomerGroup::generateHash($namesToMerge);
+        \App\Models\DuplicateCustomerGroup::where('group_hash', $hash)
+            ->update(['status' => 'merged']);
 
         return redirect()->route('customers.duplicates')
             ->with('success', "Merged successfully! Updated {$totalJobsUpdated} jobs and {$totalVehiclesUpdated} vehicles to '{$canonicalName}'. Changes have been logged for reporting.");

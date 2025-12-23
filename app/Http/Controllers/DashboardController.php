@@ -32,8 +32,8 @@ class DashboardController extends Controller
 
         $workStatusOptions = DropdownOption::getOptions('work_status');
 
-        // Just count pending merge suggestions - much faster than calculating on the fly
-        $duplicateCustomerCount = \App\Models\CustomerMergeSuggestion::pending()->count();
+        // Count pending duplicate groups - instant lookup from cached table
+        $duplicateCustomerCount = \App\Models\DuplicateCustomerGroup::pending()->count();
 
         $chartData = $this->getChartData($workStatusOptions, $workStatusCounts);
 
