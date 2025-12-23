@@ -370,16 +370,17 @@ class JobController extends Controller
         $jobs = $query->orderBy('job_date', 'desc')->get();
         
         $jobsByStatus = [];
-        foreach ($workStatuses as $status) {
-            $jobsByStatus[$status->value] = $jobs->filter(fn($job) => 
-                ($job->work_status ?? 'pending') === $status->value
-            )->take(50); // Limit per column for performance
-        }
+        $totalsByStatus = [];
         
-        // Also include jobs with no status (pending)
-        $pendingJobs = $jobs->filter(fn($job) => empty($job->work_status));
-        if ($pendingJobs->isNotEmpty() && isset($jobsByStatus['pending'])) {
-            $jobsByStatus['pending'] = $jobsByStatus['pending']->merge($pendingJobs)->take(50);
+        foreach ($workStatuses as $status) {
+            // Filter jobs for this status (NULL work_status counts as 'pending')
+            $statusJobs = $jobs->filter(function($job) use ($status) {
+                $jobStatus = $job->work_status ?? 'pending';
+                return strtolower($jobStatus) === strtolower($status->value);
+            });
+            
+            $totalsByStatus[$status->value] = $statusJobs->count();
+            $jobsByStatus[$status->value] = $statusJobs->take(100); // Show up to 100 per column
         }
         
         // Filter options
@@ -389,7 +390,7 @@ class JobController extends Controller
             'franchise' => ['PC', 'CV'],
         ];
         
-        return view('jobs.kanban', compact('workStatuses', 'jobsByStatus', 'filterOptions'));
+        return view('jobs.kanban', compact('workStatuses', 'jobsByStatus', 'totalsByStatus', 'filterOptions'));
     }
 
     /**

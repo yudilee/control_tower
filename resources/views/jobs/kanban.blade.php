@@ -157,7 +157,10 @@
             <i class="bi bi-{{ $status->icon }} text-{{ $status->color }}"></i>
             @endif
             <span>{{ $status->label }}</span>
-            <span class="badge bg-{{ $status->color }} ms-auto">{{ $jobsByStatus[$status->value]->count() }}</span>
+            @php $total = $totalsByStatus[$status->value] ?? 0; @endphp
+            <span class="badge bg-{{ $status->color }} ms-auto" title="{{ $total }} jobs total">
+                {{ $total }}@if($total > 100)+@endif
+            </span>
         </div>
         <div class="kanban-body" id="column-{{ $status->value }}">
             @forelse($jobsByStatus[$status->value] as $job)
