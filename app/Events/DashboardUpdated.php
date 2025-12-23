@@ -20,12 +20,12 @@ class DashboardUpdated implements ShouldBroadcast
      */
     public function __construct()
     {
-        // Calculate fresh stats
+        // Calculate fresh stats - must match DashboardController exactly
         $this->stats = [
             'uninvoiced' => Job::uninvoiced()->count(),
             'invoiced' => Job::invoiced()->count(),
-            'needs_parts' => Job::where('need_part', true)->uninvoiced()->count(),
-            'in_workshop' => Job::whereNotNull('date_in')->whereNull('date_out')->count(),
+            'needs_parts' => Job::uninvoiced()->needsParts()->count(),
+            'in_workshop' => \App\Models\Vehicle::where('is_in_workshop', true)->count(),
         ];
     }
 
