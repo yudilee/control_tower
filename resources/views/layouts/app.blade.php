@@ -281,6 +281,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.scheduled-reports.*') ? 'active' : '' }}" href="{{ route('admin.scheduled-reports.index') }}">
+                            <i class="bi bi-envelope-at"></i> Scheduled Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('admin.backups.*') ? 'active' : '' }}" href="{{ route('admin.backups.index') }}">
                             <i class="bi bi-database-check"></i> Database Backups
                         </a>

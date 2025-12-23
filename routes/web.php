@@ -223,6 +223,11 @@ Route::middleware('auth')->group(function () {
         Route::post('report-settings/{report}/recipients/remove', [\App\Http\Controllers\Admin\ReportSettingsController::class, 'removeRecipient'])->name('report-settings.remove-recipient');
         Route::post('report-settings/{report}/send', [\App\Http\Controllers\Admin\ReportSettingsController::class, 'sendNow'])->name('report-settings.send-now');
         Route::put('report-settings/smtp', [\App\Http\Controllers\Admin\ReportSettingsController::class, 'updateSmtp'])->name('report-settings.smtp');
+
+        // Scheduled Reports
+        Route::resource('scheduled-reports', \App\Http\Controllers\Admin\ScheduledReportController::class);
+        Route::patch('scheduled-reports/{scheduledReport}/toggle', [\App\Http\Controllers\Admin\ScheduledReportController::class, 'toggle'])->name('scheduled-reports.toggle');
+        Route::post('scheduled-reports/{scheduledReport}/send', [\App\Http\Controllers\Admin\ScheduledReportController::class, 'sendNow'])->name('scheduled-reports.send');
         Route::post('report-settings/smtp/test', [\App\Http\Controllers\Admin\ReportSettingsController::class, 'testSmtp'])->name('report-settings.test-smtp');
     });
 
