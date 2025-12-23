@@ -26,26 +26,51 @@ class BackupService
 
         $config = config('database.connections.mysql');
         
+        // Create temporary SQL file first, then gzip (more reliable than piping)
+        $tempSqlPath = $path . '.tmp.sql';
+        
+        // Build mysqldump command - capture stderr
         $command = sprintf(
-            'mysqldump --user=%s --password=%s --host=%s --port=%s %s | gzip > %s',
+            'mysqldump --user=%s --password=%s --host=%s --port=%s %s 2>&1',
             escapeshellarg($config['username']),
             escapeshellarg($config['password']),
             escapeshellarg($config['host']),
             escapeshellarg($config['port']),
-            escapeshellarg($config['database']),
-            escapeshellarg($path)
+            escapeshellarg($config['database'])
         );
 
-        // Using exec for simplicity with pipes
-        exec($command, $output, $returnVar);
-
-        if ($returnVar !== 0) {
-            throw new \Exception('Backup failed with exit code ' . $returnVar);
+        // Execute and capture output
+        $sqlContent = shell_exec($command);
+        
+        // Check if mysqldump returned an error
+        if (empty($sqlContent) || str_starts_with(trim($sqlContent), 'mysqldump:') || str_starts_with(trim($sqlContent), 'error')) {
+            throw new \Exception('Backup failed: ' . ($sqlContent ?: 'mysqldump returned empty output'));
         }
 
-        // Wait a moment for file to be fully written, then get accurate size
+        // Write SQL to temp file
+        file_put_contents($tempSqlPath, $sqlContent);
+        
+        // Gzip the file
+        $gzHandle = gzopen($path, 'wb9');
+        if (!$gzHandle) {
+            unlink($tempSqlPath);
+            throw new \Exception('Failed to create gzip file');
+        }
+        gzwrite($gzHandle, $sqlContent);
+        gzclose($gzHandle);
+        
+        // Clean up temp file
+        if (file_exists($tempSqlPath)) {
+            unlink($tempSqlPath);
+        }
+
+        // Get accurate file size
         clearstatcache(true, $path);
         $fileSize = file_exists($path) ? filesize($path) : 0;
+        
+        if ($fileSize < 100) {
+            throw new \Exception('Backup file is too small (' . $fileSize . ' bytes), backup may have failed');
+        }
 
         // Create BackupLog record
         BackupLog::create([
