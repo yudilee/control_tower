@@ -240,6 +240,10 @@ Route::middleware('auth')->group(function () {
         // Scheduler Management
         Route::get('scheduler', [\App\Http\Controllers\Admin\SchedulerController::class, 'index'])->name('scheduler.index');
         Route::post('scheduler/run', [\App\Http\Controllers\Admin\SchedulerController::class, 'runNow'])->name('scheduler.run');
+        Route::patch('scheduler/{setting}/toggle', [\App\Http\Controllers\Admin\SchedulerController::class, 'toggle'])->name('scheduler.toggle');
+        Route::put('scheduler/{setting}', [\App\Http\Controllers\Admin\SchedulerController::class, 'update'])->name('scheduler.update');
+        Route::get('scheduler/logs', [\App\Http\Controllers\Admin\SchedulerController::class, 'logs'])->name('scheduler.logs');
+        Route::delete('scheduler/logs/clear', [\App\Http\Controllers\Admin\SchedulerController::class, 'clearLogs'])->name('scheduler.clear-logs');
     });
 
     // Delete operations - Admin only (outside prefix to keep normal route names)

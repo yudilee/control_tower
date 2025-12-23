@@ -3,105 +3,131 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\SchedulerSetting;
+use App\Models\SchedulerLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Cache;
 
 class SchedulerController extends Controller
 {
-    /**
-     * Get list of scheduled tasks
-     */
     public function index()
     {
-        $schedules = $this->getScheduledTasks();
+        // Ensure default tasks exist
+        SchedulerSetting::getOrCreateDefaults();
+        
+        $schedules = SchedulerSetting::orderBy('name')->get();
+        $recentLogs = SchedulerLog::orderByDesc('created_at')->limit(20)->get();
         
         return view('admin.scheduler.index', [
             'schedules' => $schedules,
+            'recentLogs' => $recentLogs,
         ]);
     }
 
     /**
-     * Run a scheduled task manually
+     * Toggle task enabled/disabled
+     */
+    public function toggle(SchedulerSetting $setting)
+    {
+        $setting->update(['is_enabled' => !$setting->is_enabled]);
+        
+        $status = $setting->is_enabled ? 'enabled' : 'disabled';
+        return redirect()->back()->with('success', "Task '{$setting->name}' {$status}.");
+    }
+
+    /**
+     * Update task settings
+     */
+    public function update(Request $request, SchedulerSetting $setting)
+    {
+        $request->validate([
+            'schedule' => 'required|in:hourly,daily,weekly,every_minute',
+            'time' => 'required|date_format:H:i',
+            'day_of_week' => 'nullable|integer|between:0,6',
+        ]);
+
+        $setting->update([
+            'schedule' => $request->input('schedule'),
+            'time' => $request->input('time'),
+            'day_of_week' => $request->input('day_of_week'),
+        ]);
+
+        return redirect()->back()->with('success', "Schedule for '{$setting->name}' updated.");
+    }
+
+    /**
+     * Run a task manually with logging
      */
     public function runNow(Request $request)
     {
         $command = $request->input('command');
         
-        $allowedCommands = [
-            'customers:find-duplicates',
-            'reports:send',
-            'report:weekly',
-        ];
-
-        if (!in_array($command, $allowedCommands)) {
-            return redirect()->back()->with('error', 'Command not allowed.');
+        $setting = SchedulerSetting::where('command', $command)->first();
+        if (!$setting) {
+            return redirect()->back()->with('error', 'Unknown command.');
         }
+
+        // Start log entry
+        $log = SchedulerLog::start($command, 'manual');
+        $startTime = microtime(true);
 
         try {
             Artisan::call($command);
             $output = Artisan::output();
+            $duration = (int)(microtime(true) - $startTime);
             
-            return redirect()->back()->with('success', "Command '{$command}' executed successfully. Output: " . substr($output, 0, 200));
+            $log->markSuccess($output, $duration);
+            
+            // Update setting
+            $setting->update([
+                'last_run_at' => now(),
+                'last_status' => 'success',
+            ]);
+            
+            return redirect()->back()->with('success', "Task '{$setting->name}' completed successfully in {$duration}s.");
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', "Command failed: " . $e->getMessage());
+            $duration = (int)(microtime(true) - $startTime);
+            $log->markFailed($e->getMessage(), $duration);
+            
+            $setting->update([
+                'last_run_at' => now(),
+                'last_status' => 'failed',
+            ]);
+            
+            return redirect()->back()->with('error', "Task failed: " . $e->getMessage());
         }
     }
 
     /**
-     * Get scheduled tasks from console.php
+     * View logs for a specific command
      */
-    private function getScheduledTasks(): array
+    public function logs(Request $request)
     {
-        return [
-            [
-                'name' => 'Weekly Report',
-                'command' => 'report:weekly',
-                'schedule' => 'Weekly (Monday at 08:00)',
-                'description' => 'Send weekly workshop report to admins and managers',
-                'next_run' => $this->getNextRun('weekly', 1, '08:00'),
-            ],
-            [
-                'name' => 'Customer Duplicate Scan',
-                'command' => 'customers:find-duplicates',
-                'schedule' => 'Daily at 07:00',
-                'description' => 'Scan for duplicate customer names and update cache table',
-                'next_run' => $this->getNextRun('daily', null, '07:00'),
-            ],
-            [
-                'name' => 'Scheduled Email Reports',
-                'command' => 'reports:send',
-                'schedule' => 'Every minute',
-                'description' => 'Check and send scheduled email reports based on their individual schedules',
-                'next_run' => now()->addMinute()->format('d M Y H:i'),
-            ],
-        ];
+        $command = $request->input('command');
+        
+        $query = SchedulerLog::orderByDesc('created_at');
+        
+        if ($command) {
+            $query->where('command', $command);
+        }
+        
+        $logs = $query->paginate(50);
+        $commands = SchedulerSetting::pluck('name', 'command');
+        
+        return view('admin.scheduler.logs', [
+            'logs' => $logs,
+            'commands' => $commands,
+            'selectedCommand' => $command,
+        ]);
     }
 
     /**
-     * Calculate next run time
+     * Clear old logs
      */
-    private function getNextRun(string $frequency, ?int $dayOfWeek, string $time): string
+    public function clearLogs()
     {
-        $now = now()->timezone('Asia/Jakarta');
-        [$hour, $minute] = explode(':', $time);
-
-        if ($frequency === 'daily') {
-            $next = $now->copy()->setTime($hour, $minute);
-            if ($next->isPast()) {
-                $next->addDay();
-            }
-            return $next->format('d M Y H:i');
-        }
-
-        if ($frequency === 'weekly') {
-            $next = $now->copy()->startOfWeek()->addDays($dayOfWeek)->setTime($hour, $minute);
-            if ($next->isPast()) {
-                $next->addWeek();
-            }
-            return $next->format('d M Y H:i');
-        }
-
-        return 'Unknown';
+        $deleted = SchedulerLog::where('created_at', '<', now()->subDays(30))->delete();
+        
+        return redirect()->back()->with('success', "Cleared {$deleted} log entries older than 30 days.");
     }
 }
