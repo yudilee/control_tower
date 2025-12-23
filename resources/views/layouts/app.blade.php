@@ -129,9 +129,14 @@
                     Operations <i class="bi bi-chevron-down arr" style="font-size: 0.8em;"></i>
                 </div>
                 <div class="collapse {{ $isOperationsActive ? 'show' : '' }}" id="operationsMenu">
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('jobs.*') ? 'active' : '' }}" href="{{ route('jobs.index') }}">
+                <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('jobs.index') || request()->routeIs('jobs.show') ? 'active' : '' }}" href="{{ route('jobs.index') }}">
                             <i class="bi bi-card-list"></i> Job Progress
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('jobs.kanban') ? 'active' : '' }}" href="{{ route('jobs.kanban') }}">
+                            <i class="bi bi-kanban"></i> Kanban Board
                         </a>
                     </li>
                     <li class="nav-item">

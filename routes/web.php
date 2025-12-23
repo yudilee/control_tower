@@ -61,7 +61,9 @@ Route::middleware('auth')->group(function () {
 
     // Jobs - View for everyone, edit restricted by controller
     Route::get('jobs', [JobController::class, 'index'])->name('jobs.index');
+    Route::get('jobs/kanban', [JobController::class, 'kanban'])->name('jobs.kanban');
     Route::get('jobs/{job}', [JobController::class, 'show'])->name('jobs.show')->whereNumber('job');
+    Route::patch('jobs/{job}/work-status', [JobController::class, 'updateWorkStatus'])->name('jobs.update-work-status');
     
     // Vehicles - View for everyone
     Route::get('vehicles', [VehicleController::class, 'index'])->name('vehicles.index');

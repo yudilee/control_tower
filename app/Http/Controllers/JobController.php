@@ -327,5 +327,86 @@ class JobController extends Controller
 
         return redirect()->back()->with('error', 'Invalid action.');
     }
+
+    /**
+     * Kanban board view for jobs
+     */
+    public function kanban(Request $request)
+    {
+        $user = auth()->user();
+        
+        // Get work status options from database
+        $workStatuses = \App\Models\DropdownOption::getOptions('work_status');
+        
+        // Base query - only uninvoiced jobs
+        $query = Job::uninvoiced();
+        
+        // Apply role-based restrictions
+        if ($user->hasRole('sa')) {
+            $saName = $user->serviceAdvisor?->name;
+            if ($saName) {
+                $query->where('service_advisor', $saName);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        } elseif ($user->hasRole('foreman')) {
+            $foremanName = $user->foreman?->name;
+            if ($foremanName) {
+                $query->where('foreman', $foremanName);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+        
+        // Optional filters
+        if ($request->filled('franchise')) {
+            $query->where('franchise', $request->franchise);
+        }
+        if ($request->filled('service_advisor')) {
+            $query->where('service_advisor', $request->service_advisor);
+        }
+        
+        // Get jobs grouped by work status
+        $jobs = $query->orderBy('job_date', 'desc')->get();
+        
+        $jobsByStatus = [];
+        foreach ($workStatuses as $status) {
+            $jobsByStatus[$status->value] = $jobs->filter(fn($job) => 
+                ($job->work_status ?? 'pending') === $status->value
+            )->take(50); // Limit per column for performance
+        }
+        
+        // Also include jobs with no status (pending)
+        $pendingJobs = $jobs->filter(fn($job) => empty($job->work_status));
+        if ($pendingJobs->isNotEmpty() && isset($jobsByStatus['pending'])) {
+            $jobsByStatus['pending'] = $jobsByStatus['pending']->merge($pendingJobs)->take(50);
+        }
+        
+        // Filter options
+        $filterOptions = [
+            'service_advisor' => Job::uninvoiced()->whereNotNull('service_advisor')
+                ->distinct()->pluck('service_advisor')->sort()->values(),
+            'franchise' => ['PC', 'CV'],
+        ];
+        
+        return view('jobs.kanban', compact('workStatuses', 'jobsByStatus', 'filterOptions'));
+    }
+
+    /**
+     * Update job work status via AJAX (for kanban drag-drop)
+     */
+    public function updateWorkStatus(Request $request, Job $job)
+    {
+        $validated = $request->validate([
+            'work_status' => 'required|string',
+        ]);
+        
+        $job->update(['work_status' => $validated['work_status']]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => "Job {$job->job_number} moved to {$validated['work_status']}",
+        ]);
+    }
 }
 
