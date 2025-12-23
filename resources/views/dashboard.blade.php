@@ -44,25 +44,25 @@
 <div class="row g-4 mb-5">
     <div class="col-md-3">
         <div class="stat-card-modern">
-            <p class="stat-value">{{ $uninvoicedCount }}</p>
+            <p class="stat-value" id="stat-uninvoiced">{{ $uninvoicedCount }}</p>
             <p class="stat-label mb-0"><i class="bi bi-clock me-1"></i>Uninvoiced Jobs</p>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stat-card-modern warning">
-            <p class="stat-value">{{ $needsPartsCount }}</p>
+            <p class="stat-value" id="stat-needs-parts">{{ $needsPartsCount }}</p>
             <p class="stat-label mb-0"><i class="bi bi-gear me-1"></i>Needs Parts</p>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stat-card-modern success">
-            <p class="stat-value">{{ $invoicedCount }}</p>
+            <p class="stat-value" id="stat-invoiced">{{ $invoicedCount }}</p>
             <p class="stat-label mb-0"><i class="bi bi-check-circle me-1"></i>Invoiced Jobs</p>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stat-card-modern info">
-            <p class="stat-value">{{ $vehiclesInWorkshop }}</p>
+            <p class="stat-value" id="stat-in-workshop">{{ $vehiclesInWorkshop }}</p>
             <p class="stat-label mb-0"><i class="bi bi-car-front me-1"></i>In Workshop</p>
         </div>
     </div>
@@ -405,6 +405,38 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+    
+    // Real-time dashboard updates via WebSocket
+    if (window.Echo) {
+        window.Echo.channel('dashboard')
+            .listen('.stats-updated', (e) => {
+                console.log('[Dashboard] Stats updated:', e.stats);
+                
+                // Update stat cards with animation
+                const updates = [
+                    { id: 'stat-uninvoiced', value: e.stats.uninvoiced },
+                    { id: 'stat-needs-parts', value: e.stats.needs_parts },
+                    { id: 'stat-invoiced', value: e.stats.invoiced },
+                    { id: 'stat-in-workshop', value: e.stats.in_workshop },
+                ];
+                
+                updates.forEach(({ id, value }) => {
+                    const el = document.getElementById(id);
+                    if (el && parseInt(el.textContent) !== value) {
+                        el.style.transition = 'transform 0.3s, color 0.3s';
+                        el.style.transform = 'scale(1.2)';
+                        el.style.color = '#0d6efd';
+                        el.textContent = value;
+                        
+                        setTimeout(() => {
+                            el.style.transform = 'scale(1)';
+                            el.style.color = '';
+                        }, 300);
+                    }
+                });
+            });
+        console.log('[Dashboard] Subscribed to real-time updates');
+    }
 });
 </script>
 @endpush

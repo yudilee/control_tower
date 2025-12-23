@@ -99,6 +99,32 @@ class Job extends Model
         ];
     }
 
+    /**
+     * Boot the model and register events.
+     */
+    protected static function booted(): void
+    {
+        // Broadcast dashboard update when jobs change
+        $broadcastDashboardUpdate = function () {
+            // Debounce: only broadcast once per second to prevent spam
+            $cacheKey = 'dashboard_broadcast_pending';
+            if (!\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+                \Illuminate\Support\Facades\Cache::put($cacheKey, true, 1); // 1 second
+                event(new \App\Events\DashboardUpdated());
+            }
+        };
+
+        static::created($broadcastDashboardUpdate);
+        static::updated(function ($job) use ($broadcastDashboardUpdate) {
+            // Only broadcast if status-related fields changed
+            $relevantFields = ['status', 'need_part', 'date_in', 'date_out', 'invoice_number'];
+            if ($job->wasChanged($relevantFields)) {
+                $broadcastDashboardUpdate();
+            }
+        });
+        static::deleted($broadcastDashboardUpdate);
+    }
+
     public function vehicle(): BelongsTo
     {
         return $this->belongsTo(Vehicle::class);
