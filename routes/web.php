@@ -114,11 +114,15 @@ Route::middleware('auth')->group(function () {
         Route::put('jobs/{job}', [JobController::class, 'update'])->name('jobs.update');
         Route::post('jobs/{job}/mark-invoiced', [JobController::class, 'markInvoiced'])->name('jobs.mark-invoiced');
 
-        // Vehicles CRUD (except destroy)
+        // Vehicles CRUD (except destroy and workshop toggle)
         Route::get('vehicles/create', [VehicleController::class, 'create'])->name('vehicles.create');
         Route::post('vehicles', [VehicleController::class, 'store'])->name('vehicles.store');
         Route::get('vehicles/{vehicle}/edit', [VehicleController::class, 'edit'])->name('vehicles.edit');
         Route::put('vehicles/{vehicle}', [VehicleController::class, 'update'])->name('vehicles.update');
+    });
+
+    // Workshop Toggle - Control Tower and Admin only (NOT manager)
+    Route::middleware('role:control_tower,admin')->group(function () {
         Route::post('vehicles/{vehicle}/toggle-workshop', [VehicleController::class, 'toggleWorkshop'])->name('vehicles.toggle-workshop');
         Route::post('vehicles/bulk-workshop', [VehicleController::class, 'bulkUpdateWorkshop'])->name('vehicles.bulk-workshop');
 

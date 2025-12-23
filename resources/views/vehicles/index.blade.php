@@ -130,7 +130,7 @@
                         <td data-col="actions" onclick="event.stopPropagation()">
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ route('vehicles.show', $vehicle) }}" class="btn btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
-                                @if(auth()->user()?->canEdit())
+                                @if(auth()->user()?->hasRole('control_tower') || auth()->user()?->hasRole('admin'))
                                 <form action="{{ route('vehicles.toggle-workshop', $vehicle) }}" method="POST" class="d-inline">
                                     @csrf
                                     <button type="submit" class="btn btn-outline-{{ $vehicle->is_in_workshop ? 'warning' : 'success' }}" title="Toggle Workshop">

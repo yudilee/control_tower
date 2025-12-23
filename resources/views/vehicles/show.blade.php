@@ -14,7 +14,7 @@
         <h1><i class="bi bi-car-front me-2"></i>{{ $vehicle->plate_number }}</h1>
     </div>
     <div>
-        @if(auth()->user()?->canEdit())
+        @if(auth()->user()?->hasRole('control_tower') || auth()->user()?->hasRole('admin'))
         <form action="{{ route('vehicles.toggle-workshop', $vehicle) }}" method="POST" class="d-inline">
             @csrf
             <button type="submit" class="btn btn-{{ $vehicle->is_in_workshop ? 'warning' : 'success' }} me-2">
@@ -22,14 +22,16 @@
                 {{ $vehicle->is_in_workshop ? 'Mark Not in Workshop' : 'Mark In Workshop' }}
             </button>
         </form>
-        <a href="{{ route('vehicles.edit', $vehicle) }}" class="btn btn-outline-primary">
-            <i class="bi bi-pencil me-1"></i>Edit
-        </a>
         @else
-        <button type="button" class="btn btn-secondary me-2" disabled title="You don't have permission">
+        <button type="button" class="btn btn-secondary me-2" disabled title="Only Control Tower and Admin can change workshop status">
             <i class="bi bi-{{ $vehicle->is_in_workshop ? 'box-arrow-right' : 'box-arrow-in-right' }} me-1"></i>
             {{ $vehicle->is_in_workshop ? 'Mark Not in Workshop' : 'Mark In Workshop' }}
         </button>
+        @endif
+        @if(auth()->user()?->canEdit())
+        <a href="{{ route('vehicles.edit', $vehicle) }}" class="btn btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i>Edit
+        </a>
         @endif
     </div>
 </div>
