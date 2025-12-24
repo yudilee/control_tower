@@ -143,9 +143,19 @@ class VehicleController extends Controller
 
     public function toggleWorkshop(Vehicle $vehicle)
     {
+        $oldStatus = $vehicle->is_in_workshop;
         $vehicle->update([
             'is_in_workshop' => !$vehicle->is_in_workshop,
         ]);
+        
+        // Log activity for all jobs linked to this vehicle
+        $statusText = $vehicle->is_in_workshop ? 'In Workshop' : 'Out of Workshop';
+        foreach ($vehicle->jobs()->where('status', 'uninvoiced')->get() as $job) {
+            \App\Models\JobActivity::log($job, 'updated', 
+                "Vehicle marked as {$statusText}",
+                ['field' => 'vehicle_workshop', 'old' => $oldStatus, 'new' => $vehicle->is_in_workshop]
+            );
+        }
 
         return redirect()->back()
             ->with('success', 'Workshop status updated.');

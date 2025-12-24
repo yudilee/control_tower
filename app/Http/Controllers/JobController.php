@@ -203,6 +203,8 @@ class JobController extends Controller
         // Track key field changes for activity log
         $oldForeman = $job->foreman;
         $oldWorkStatus = $job->work_status;
+        $oldNeedPart = $job->need_part;
+        $oldCustomerName = $job->customer_name;
         
         $job->update($request->validated());
         
@@ -217,6 +219,19 @@ class JobController extends Controller
             \App\Models\JobActivity::log($job, 'work_status_changed', 
                 "Work status changed from '" . ($oldWorkStatus ?? 'None') . "' to '" . ($job->work_status ?? 'None') . "'",
                 ['old' => $oldWorkStatus, 'new' => $job->work_status]
+            );
+        }
+        if ($oldNeedPart !== $job->need_part) {
+            $status = $job->need_part ? 'enabled' : 'disabled';
+            \App\Models\JobActivity::log($job, 'updated', 
+                "Needs Parts flag {$status}",
+                ['field' => 'need_part', 'old' => $oldNeedPart, 'new' => $job->need_part]
+            );
+        }
+        if ($oldCustomerName !== $job->customer_name) {
+            \App\Models\JobActivity::log($job, 'updated', 
+                "Customer name changed from '{$oldCustomerName}' to '{$job->customer_name}'",
+                ['field' => 'customer_name', 'old' => $oldCustomerName, 'new' => $job->customer_name]
             );
         }
 
@@ -302,6 +317,12 @@ class JobController extends Controller
             $user->id
         );
 
+        // Log activity
+        \App\Models\JobActivity::log($job, 'invoiced', 
+            "Marked as invoiced with invoice #{$validated['invoice_number']}",
+            ['invoice_number' => $validated['invoice_number']]
+        );
+
         return redirect()->route('jobs.show', $job)
             ->with('success', 'Job marked as invoiced.');
     }
@@ -324,7 +345,27 @@ class JobController extends Controller
             'lain_lain' => 'nullable|string',
         ]);
 
+        // Track changes for activity log
+        $changes = [];
+        if ($job->rq !== ($validated['rq'] ?? null)) {
+            $changes[] = 'RQ';
+        }
+        if ($job->no_order_part_mbina !== ($validated['no_order_part_mbina'] ?? null)) {
+            $changes[] = 'Order Part MBINA';
+        }
+        if ($job->lain_lain !== ($validated['lain_lain'] ?? null)) {
+            $changes[] = 'Lain-lain';
+        }
+
         $job->update($validated);
+
+        // Log activity
+        if (!empty($changes)) {
+            \App\Models\JobActivity::log($job, 'parts_updated', 
+                "Order & Parts updated: " . implode(', ', $changes),
+                $validated
+            );
+        }
 
         return redirect()->route('jobs.show', $job)
             ->with('success', 'Order & Parts updated successfully.');
