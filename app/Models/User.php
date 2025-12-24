@@ -153,7 +153,7 @@ class User extends Authenticatable
      */
     public function canImport(): bool
     {
-        return $this->hasAnyRole(['admin', 'manager', 'control_tower']);
+        return $this->canDo('Job', 'create') || $this->hasAnyRole(['admin', 'manager', 'control_tower']);
     }
 
     /**
@@ -161,7 +161,7 @@ class User extends Authenticatable
      */
     public function canManageMasterData(): bool
     {
-        return $this->hasAnyRole(['admin', 'manager', 'control_tower']);
+        return $this->canDo('Settings', 'write') || $this->hasAnyRole(['admin', 'manager', 'control_tower']);
     }
 
     /**
@@ -169,7 +169,7 @@ class User extends Authenticatable
      */
     public function canMarkInvoiced(): bool
     {
-        return $this->hasAnyRole(['admin', 'control_tower']);
+        return $this->canWriteField('Job', 'invoiced') || $this->hasAnyRole(['admin', 'control_tower']);
     }
 
     /**
@@ -177,7 +177,7 @@ class User extends Authenticatable
      */
     public function canManageUsers(): bool
     {
-        return $this->hasRole('admin');
+        return $this->canDo('User', 'write') || $this->hasRole('admin');
     }
 
     /**
@@ -185,6 +185,13 @@ class User extends Authenticatable
      */
     public function getRoleDisplayName(): string
     {
+        // Try new role system first
+        $roles = $this->roles;
+        if ($roles->isNotEmpty()) {
+            return $roles->pluck('name')->implode(', ');
+        }
+        
+        // Fallback to old role field
         return match($this->role) {
             'admin' => 'Administrator',
             'manager' => 'Workshop Manager',
@@ -208,5 +215,117 @@ class User extends Authenticatable
         }
         return strtoupper(substr($this->name, 0, 2));
     }
-}
 
+    // ========== NEW ROLE PERMISSION SYSTEM ==========
+
+    /**
+     * Get user's roles (many-to-many)
+     */
+    public function roles(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, 'user_roles');
+    }
+
+    /**
+     * Check if user can perform action on doctype
+     * Checks all user's roles - any permission grants access
+     */
+    public function canDo(string $doctype, string $action): bool
+    {
+        // Admin role always has full access
+        if ($this->role === 'admin' || $this->roles()->where('slug', 'administrator')->exists()) {
+            return true;
+        }
+
+        foreach ($this->roles as $role) {
+            if ($role->can($doctype, $action)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if user can read a doctype
+     */
+    public function canRead(string $doctype): bool
+    {
+        return $this->canDo($doctype, 'read');
+    }
+
+    /**
+     * Check if user can write to a doctype
+     */
+    public function canWrite(string $doctype): bool
+    {
+        return $this->canDo($doctype, 'write');
+    }
+
+    /**
+     * Check if user can write to a specific field
+     * Checks all user's roles - any permission grants access
+     */
+    public function canWriteField(string $doctype, string $field): bool
+    {
+        // Admin always has full access
+        if ($this->role === 'admin' || $this->roles()->where('slug', 'administrator')->exists()) {
+            return true;
+        }
+
+        foreach ($this->roles as $role) {
+            if ($role->canWriteField($doctype, $field)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if user can read a specific field
+     */
+    public function canReadField(string $doctype, string $field): bool
+    {
+        // Admin always has full access
+        if ($this->role === 'admin' || $this->roles()->where('slug', 'administrator')->exists()) {
+            return true;
+        }
+
+        foreach ($this->roles as $role) {
+            $fieldPerm = $role->fieldPermissions()
+                ->where('doctype', $doctype)
+                ->where('field', $field)
+                ->first();
+            
+            if ($fieldPerm && $fieldPerm->can_read) {
+                return true;
+            }
+        }
+
+        // Default: if no field permission, check doctype read
+        return $this->canRead($doctype);
+    }
+
+    /**
+     * Assign role to user
+     */
+    public function assignRole(string $roleSlug): void
+    {
+        $role = Role::where('slug', $roleSlug)->first();
+        if ($role && !$this->roles->contains($role->id)) {
+            $this->roles()->attach($role->id);
+        }
+    }
+
+    /**
+     * Remove role from user
+     */
+    public function removeRole(string $roleSlug): void
+    {
+        $role = Role::where('slug', $roleSlug)->first();
+        if ($role) {
+            $this->roles()->detach($role->id);
+        }
+    }
+}
