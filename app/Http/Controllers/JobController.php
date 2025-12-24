@@ -111,10 +111,27 @@ class JobController extends Controller
         }
 
         // Column Filters (Excel-style)
-        $filterColumns = ['service_advisor', 'foreman', 'department', 'work_status', 'block', 'technician', 'job_type', 'payment_type'];
+        $filterColumns = ['service_advisor', 'foreman', 'department', 'block', 'technician', 'job_type', 'payment_type'];
         foreach ($filterColumns as $filterCol) {
             if ($request->filled("filter_{$filterCol}")) {
                 $query->where($filterCol, $request->input("filter_{$filterCol}"));
+            }
+        }
+        
+        // Special handling for work_status: first status includes NULL (like Kanban)
+        if ($request->filled('filter_work_status')) {
+            $workStatusValue = $request->input('filter_work_status');
+            $firstStatus = \App\Models\DropdownOption::getOptions('work_status')->first()?->value;
+            
+            if ($workStatusValue === $firstStatus) {
+                // First status includes jobs with NULL or empty work_status
+                $query->where(function($q) use ($workStatusValue) {
+                    $q->where('work_status', $workStatusValue)
+                      ->orWhereNull('work_status')
+                      ->orWhere('work_status', '');
+                });
+            } else {
+                $query->where('work_status', $workStatusValue);
             }
         }
         // Boolean filter for need_part (supports both filter_need_part and need_part params)

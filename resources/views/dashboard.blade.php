@@ -110,7 +110,7 @@
                 }
             @endphp
             <div class="col-md col-6">
-                <a href="{{ route('jobs.index', ['status' => 'uninvoiced', 'work_status' => $option->value]) }}" class="text-decoration-none">
+                <a href="{{ route('jobs.index', ['status' => 'uninvoiced', 'filter_work_status' => $option->value]) }}" class="text-decoration-none">
                     <div class="card border-0 bg-{{ $option->color }} bg-opacity-10 h-100">
                         <div class="card-body py-3 text-center">
                             @if($option->icon)
