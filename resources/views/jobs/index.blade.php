@@ -58,6 +58,55 @@
                 @endauth
             </div>
         </form>
+        
+        <!-- Additional Filters Row -->
+        <form method="GET" class="row g-2 align-items-center mt-2" id="advancedFilters">
+            <!-- Preserve existing params -->
+            <input type="hidden" name="search" value="{{ request('search') }}">
+            <input type="hidden" name="franchise" value="{{ request('franchise') }}">
+            <input type="hidden" name="status" value="{{ request('status') }}">
+            <input type="hidden" name="date_from" value="{{ request('date_from') }}">
+            <input type="hidden" name="date_to" value="{{ request('date_to') }}">
+            
+            <div class="col-md-2">
+                <select name="filter_work_status" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Work Status</option>
+                    @foreach(\App\Models\DropdownOption::getOptions('work_status') as $opt)
+                    <option value="{{ $opt->value }}" {{ request('filter_work_status') == $opt->value ? 'selected' : '' }}>{{ $opt->label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="filter_service_advisor" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Service Advisors</option>
+                    @foreach($filterOptions['service_advisor'] ?? [] as $sa)
+                    <option value="{{ $sa }}" {{ request('filter_service_advisor') == $sa ? 'selected' : '' }}>{{ $sa }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="filter_foreman" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Foreman</option>
+                    @foreach($filterOptions['foreman'] ?? [] as $fm)
+                    <option value="{{ $fm }}" {{ request('filter_foreman') == $fm ? 'selected' : '' }}>{{ $fm }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="need_part" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Parts Status</option>
+                    <option value="1" {{ request('need_part') == '1' ? 'selected' : '' }}>Needs Parts</option>
+                    <option value="0" {{ request('need_part') == '0' ? 'selected' : '' }}>No Parts Needed</option>
+                </select>
+            </div>
+            @if(request()->hasAny(['filter_work_status', 'filter_service_advisor', 'filter_foreman', 'need_part']))
+            <div class="col-auto">
+                <a href="{{ route('jobs.index', request()->only(['search', 'franchise', 'status', 'date_from', 'date_to'])) }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x-circle"></i> Clear Filters
+                </a>
+            </div>
+            @endif
+        </form>
     </div>
 </div>
 
