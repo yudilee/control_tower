@@ -51,7 +51,7 @@
                             </td>
                             <td class="text-muted">{{ $user->email }}</td>
                             <td>
-                                @if($user->auth_source === 'local')
+                                @if(!$user->auth_source || $user->auth_source === 'local')
                                     <span class="badge bg-secondary"><i class="bi bi-database me-1"></i>Internal</span>
                                 @else
                                     <span class="badge bg-primary"><i class="bi bi-server me-1"></i>LDAP</span>
@@ -78,7 +78,7 @@
                                 <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-primary">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                @if($user->auth_source === 'local' && $user->id !== auth()->id())
+                                @if((!$user->auth_source || $user->auth_source === 'local') && $user->id !== auth()->id())
                                 <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete user {{ $user->name }}?');">
                                     @csrf
                                     @method('DELETE')
@@ -155,18 +155,28 @@
 
         <!-- Role Legend -->
         <div class="card mt-3">
-            <div class="card-header">
-                <i class="bi bi-shield-check me-2"></i>Role Permissions
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-shield-check me-2"></i>Role Permissions</span>
+                <a href="{{ route('admin.roles.index') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-gear"></i>
+                </a>
             </div>
             <div class="card-body">
+                @php
+                    $allRoles = \App\Models\Role::withCount('permissions')->orderBy('name')->get();
+                    $roleColors = ['administrator' => 'danger', 'manager' => 'warning', 'control_tower' => 'primary', 'sparepart' => 'info', 'sa' => 'success', 'foreman' => 'success', 'viewer' => 'secondary'];
+                @endphp
                 <ul class="list-unstyled small mb-0">
-                    <li class="mb-2"><span class="badge bg-danger">Admin</span> Full access + user management</li>
-                    <li class="mb-2"><span class="badge bg-warning">Manager</span> All except user management</li>
-                    <li class="mb-2"><span class="badge bg-primary">Control Tower</span> Operations, Master Data, Import</li>
-                    <li class="mb-2"><span class="badge bg-info">Sparepart</span> View + Need Parts + Remarks</li>
-                    <li class="mb-2"><span class="badge bg-success">SA/Foreman</span> View + Remarks</li>
-                    <li><span class="badge bg-secondary">Audit</span> View all + Audit logs</li>
+                    @foreach($allRoles as $role)
+                    <li class="mb-2">
+                        <span class="badge bg-{{ $roleColors[$role->slug] ?? 'secondary' }}">{{ $role->name }}</span>
+                        {{ $role->description ?? 'No description' }}
+                    </li>
+                    @endforeach
                 </ul>
+                @if($allRoles->isEmpty())
+                <p class="text-muted mb-0">No roles defined. <a href="{{ route('admin.roles.index') }}">Create roles</a></p>
+                @endif
             </div>
         </div>
     </div>
