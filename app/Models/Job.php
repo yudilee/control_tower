@@ -104,25 +104,25 @@ class Job extends Model
      */
     protected static function booted(): void
     {
-        // Broadcast dashboard update when jobs change
-        $broadcastDashboardUpdate = function () {
-            // Debounce: only broadcast once per second to prevent spam
+        // Clear dashboard cache and broadcast update when jobs change
+        $handleDashboardUpdate = function () {
+            // Clear dashboard cache immediately for fresh data
+            \App\Http\Controllers\DashboardController::clearCache();
+            
+            // Debounce broadcast: only once per second to prevent spam
             $cacheKey = 'dashboard_broadcast_pending';
             if (!\Illuminate\Support\Facades\Cache::has($cacheKey)) {
-                \Illuminate\Support\Facades\Cache::put($cacheKey, true, 1); // 1 second
+                \Illuminate\Support\Facades\Cache::put($cacheKey, true, 1);
                 event(new \App\Events\DashboardUpdated());
             }
         };
 
-        static::created($broadcastDashboardUpdate);
-        static::updated(function ($job) use ($broadcastDashboardUpdate) {
-            // Only broadcast if status-related fields changed
-            $relevantFields = ['status', 'need_part', 'date_in', 'date_out', 'invoice_number'];
-            if ($job->wasChanged($relevantFields)) {
-                $broadcastDashboardUpdate();
-            }
+        static::created($handleDashboardUpdate);
+        static::updated(function ($job) use ($handleDashboardUpdate) {
+            // Clear cache and broadcast for any job update
+            $handleDashboardUpdate();
         });
-        static::deleted($broadcastDashboardUpdate);
+        static::deleted($handleDashboardUpdate);
     }
 
     public function vehicle(): BelongsTo

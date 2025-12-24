@@ -496,6 +496,41 @@
                 </div>
             </div>
 
+            <!-- Activity Timeline -->
+            <div class="card mt-3">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-clock-history me-2"></i>Activity Timeline <span class="badge bg-secondary ms-1">{{ $job->activities->count() }}</span></span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="timeline-container" style="max-height: 300px; overflow-y: auto;">
+                        @forelse($job->activities->take(20) as $activity)
+                        <div class="timeline-item d-flex p-2 border-bottom">
+                            <div class="timeline-icon me-3">
+                                <span class="badge bg-{{ $activity->color }} rounded-circle p-2">
+                                    <i class="bi bi-{{ $activity->icon }}"></i>
+                                </span>
+                            </div>
+                            <div class="timeline-content flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong class="text-{{ $activity->color }}">{{ ucfirst(str_replace('_', ' ', $activity->action)) }}</strong>
+                                        <p class="mb-0 small text-muted">{{ $activity->description }}</p>
+                                    </div>
+                                    <small class="text-muted text-nowrap">{{ $activity->created_at->diffForHumans() }}</small>
+                                </div>
+                                <small class="text-muted">by {{ $activity->user_name }}</small>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-clock-history fs-1 opacity-50"></i>
+                            <p class="mb-0 mt-2">No activity recorded yet</p>
+                        </div>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <div class="col-md-4">
