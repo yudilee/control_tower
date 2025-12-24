@@ -42,7 +42,10 @@
             @endif
         </h1>
     </div>
-    <div>
+    <div class="d-flex gap-2">
+        <a href="{{ route('jobs.export-pdf', $job) }}" target="_blank" class="btn btn-outline-secondary">
+            <i class="bi bi-file-pdf me-1"></i>Export PDF
+        </a>
         @if(auth()->user()->canEdit())
             @if($job->status == 'uninvoiced')
             <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#markInvoicedModal">

@@ -71,6 +71,7 @@ Route::middleware('auth')->group(function () {
     Route::get('jobs/kanban', [JobController::class, 'kanban'])->name('jobs.kanban');
     Route::get('jobs/{job}', [JobController::class, 'show'])->name('jobs.show')->whereNumber('job');
     Route::patch('jobs/{job}/work-status', [JobController::class, 'updateWorkStatus'])->name('jobs.update-work-status');
+    Route::get('jobs/{job}/export-pdf', [JobController::class, 'exportPdf'])->name('jobs.export-pdf');
     
     // Vehicles - View for everyone
     Route::get('vehicles', [VehicleController::class, 'index'])->name('vehicles.index');
