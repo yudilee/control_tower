@@ -121,6 +121,13 @@ class SchedulerSetting extends Model
                 'time' => '08:00',
                 'day_of_week' => 1,
             ],
+            [
+                'command' => 'audit:archive',
+                'name' => 'Archive Audit Logs',
+                'description' => 'Archive old audit logs to keep database fast',
+                'schedule' => 'daily',
+                'time' => '02:00',
+            ],
         ];
 
         foreach ($defaults as $task) {

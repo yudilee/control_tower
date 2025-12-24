@@ -247,6 +247,14 @@ Route::middleware('auth')->group(function () {
         Route::put('scheduler/{setting}', [\App\Http\Controllers\Admin\SchedulerController::class, 'update'])->name('scheduler.update');
         Route::get('scheduler/logs', [\App\Http\Controllers\Admin\SchedulerController::class, 'logs'])->name('scheduler.logs');
         Route::delete('scheduler/logs/clear', [\App\Http\Controllers\Admin\SchedulerController::class, 'clearLogs'])->name('scheduler.clear-logs');
+
+        // Audit Log Management
+        Route::get('audit-logs', [\App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-logs.index');
+        Route::get('audit-logs/archives', [\App\Http\Controllers\Admin\AuditLogController::class, 'archives'])->name('audit-logs.archives');
+        Route::post('audit-logs/archive', [\App\Http\Controllers\Admin\AuditLogController::class, 'archive'])->name('audit-logs.archive');
+        Route::post('audit-logs/settings', [\App\Http\Controllers\Admin\AuditLogController::class, 'updateSettings'])->name('audit-logs.settings');
+        Route::post('audit-logs/clear-archives', [\App\Http\Controllers\Admin\AuditLogController::class, 'clearArchives'])->name('audit-logs.clear-archives');
+        Route::get('audit-logs/export', [\App\Http\Controllers\Admin\AuditLogController::class, 'exportArchives'])->name('audit-logs.export');
     });
 
     // Delete operations - Admin only (outside prefix to keep normal route names)

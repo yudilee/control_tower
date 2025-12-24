@@ -305,14 +305,14 @@
 
                 @if(Auth::user()->hasAnyRole(['admin', 'audit']))
                 @php
-                    $isAuditActive = request()->routeIs('audit-logs.*') || request()->routeIs('tracker.*');
+                    $isAuditActive = request()->routeIs('admin.audit-logs.*') || request()->routeIs('tracker.*');
                 @endphp
                 <div class="nav-section" data-bs-toggle="collapse" data-bs-target="#auditMenu" aria-expanded="{{ $isAuditActive ? 'true' : 'false' }}">
                     Audit <i class="bi bi-chevron-down arr" style="font-size: 0.8em;"></i>
                 </div>
                 <div class="collapse {{ $isAuditActive ? 'show' : '' }}" id="auditMenu">
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}" href="{{ route('audit-logs.index') }}">
+                        <a class="nav-link {{ request()->routeIs('admin.audit-logs.*') ? 'active' : '' }}" href="{{ route('admin.audit-logs.index') }}">
                             <i class="bi bi-journal-text"></i> Audit Logs
                         </a>
                     </li>
