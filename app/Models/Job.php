@@ -8,12 +8,92 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 
-use App\Traits\Auditable; // Add this line
+use App\Traits\Auditable;
 
+/**
+ * Workshop Service Job Model.
+ * 
+ * Represents a vehicle service job from creation through invoicing.
+ * Central entity in the Control Tower system with relationships to
+ * vehicles, remarks, invoices, activities, and imports.
+ * 
+ * @package App\Models
+ * 
+ * @property int $id
+ * @property string|null $job_number WIP number - unique job identifier
+ * @property string|null $work_order_number Work order reference
+ * @property string|null $job_card Job card number
+ * @property string|null $franchise PC (Passenger Car) or CV (Commercial Vehicle)
+ * @property string|null $department W (Workshop) or B (Body Paint)
+ * @property int|null $vehicle_id Related vehicle ID
+ * @property string|null $plate_number Vehicle plate number
+ * @property string|null $chassis_number Vehicle chassis/VIN
+ * @property string|null $unit_type Vehicle unit type
+ * @property string|null $type_unit Alternative unit type field
+ * @property string|null $account_no Customer account number
+ * @property Carbon|null $date_first_reg Vehicle first registration date
+ * @property string|null $customer_name Customer name
+ * @property string|null $customer_address Customer address
+ * @property string|null $service_advisor Assigned Service Advisor name
+ * @property string|null $technician Assigned technician name
+ * @property string|null $foreman Assigned Foreman name
+ * @property string|null $block Work block/bay assignment
+ * @property string|null $job_type Type of service work
+ * @property Carbon|null $job_date Job creation date
+ * @property Carbon|null $date_in Vehicle entry date
+ * @property Carbon|null $date_out Vehicle exit date
+ * @property string|null $check_in_time Check-in time
+ * @property string|null $payment_type Payment method
+ * @property string|null $job_description Description of work
+ * @property Carbon|null $deadline Job deadline
+ * @property Carbon|null $promise_date Promised completion date
+ * @property float|null $estimated_amount Estimated job value
+ * @property float|null $labour_sales Labour charges
+ * @property float|null $part_sales Parts charges
+ * @property float|null $total_sales Total job value
+ * @property string|null $rq Requisition number for parts
+ * @property string|null $no_order_part_mbina MBINA parts order number
+ * @property string|null $lain_lain Other notes
+ * @property string $status Job status: uninvoiced, invoiced
+ * @property string|null $work_status Current work status from dropdown
+ * @property bool $need_part Whether job requires spare parts
+ * @property string|null $description Additional description
+ * @property string|null $latest_remark Latest remark text (cached)
+ * @property Carbon|null $latest_remark_at Latest remark timestamp
+ * @property string|null $update_remarks Update remarks
+ * @property Carbon|null $update_at Update timestamp
+ * @property string|null $invoice_number Invoice number when invoiced
+ * @property Carbon|null $invoice_date Invoice date
+ * @property string|null $type_sale Sale type: INT, WAR, CASH
+ * @property float|null $inv_amount Invoice amount
+ * @property float|null $inv_ppn PPN (tax) amount
+ * @property float|null $inv_ppn_meterai Meterai stamp duty
+ * @property Carbon|null $invoiced_at When job was invoiced
+ * @property int|null $import_id Source import ID
+ * @property bool $is_dummy_wip Whether this is a dummy WIP record
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * 
+ * @property-read Vehicle|null $vehicle Related vehicle
+ * @property-read Collection<Remark> $remarks Job remarks/comments
+ * @property-read Collection<JobInvoice> $invoices Invoice records
+ * @property-read Collection<JobActivity> $activities Activity timeline
+ * @property-read Import|null $import Source import record
+ * @property-read float $total_invoice_amount Computed sum of invoices
+ * @property-read string $department_label Human-readable department
+ * @property-read string $type_sale_label Human-readable type sale
+ * @property-read Remark|null $first_remark Oldest remark
+ * @property-read Remark|null $latest_remark_from_table Newest remark
+ * @property-read string|null $first_remark_text First remark text
+ * @property-read string|null $update_remark_text Latest remark text
+ * @property-read Carbon|null $last_remark_updated Latest remark date
+ */
 class Job extends Model
 {
-    use HasFactory, Auditable; // Add this trait
+    use HasFactory, Auditable;
 
     protected $fillable = [
         'job_number',

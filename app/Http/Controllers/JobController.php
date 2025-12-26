@@ -9,16 +9,36 @@ use App\Http\Requests\UpdateJobRequest;
 use App\Models\Job;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 
+/**
+ * Controller for managing workshop service jobs.
+ * 
+ * Handles all job-related operations including listing, creating, updating,
+ * deleting jobs, managing remarks, invoice marking, and bulk operations.
+ * Implements role-based access control for SA, Foreman, and Sparepart roles.
+ * 
+ * @package App\Http\Controllers
+ * @author Control Tower Team
+ */
 class JobController extends Controller
 {
     /**
-     * Check if user is authorized to view/edit this specific job
-     * SA: must be assigned as service_advisor
-     * Foreman: must be assigned as foreman  
-     * Sparepart: job must have need_part = true
+     * Check if user is authorized to view/edit this specific job.
+     * 
+     * Authorization rules:
+     * - SA: must be assigned as service_advisor on the job
+     * - Foreman: must be assigned as foreman on the job
+     * - Sparepart: job must have need_part = true
+     * - Other roles: pass through without restriction
+     *
+     * @param Job $job The job to check authorization for
+     * @return bool Returns true if authorized
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException 403 if not authorized
      */
-    private function checkAssignmentAuthorization(Job $job)
+    private function checkAssignmentAuthorization(Job $job): bool
     {
         $user = auth()->user();
         
@@ -38,7 +58,17 @@ class JobController extends Controller
         return true;
     }
 
-    public function index(Request $request)
+    /**
+     * Display a listing of jobs with filtering, sorting, and pagination.
+     * 
+     * Supports filtering by status, franchise, search term, date range,
+     * service advisor, foreman, department, work status, and more.
+     * SA/Foreman roles see only their assigned jobs.
+     *
+     * @param Request $request HTTP request with filter/sort parameters
+     * @return View The jobs index view with paginated jobs and filter options
+     */
+    public function index(Request $request): View
     {
         $query = Job::with('vehicle');
         $user = auth()->user();
@@ -161,12 +191,24 @@ class JobController extends Controller
         return view('jobs.index', compact('jobs', 'filterOptions'));
     }
 
-    public function create()
+    /**
+     * Show the form for creating a new job.
+     *
+     * @return View The job creation form view
+     */
+    public function create(): View
     {
         return view('jobs.create');
     }
 
-    public function store(StoreJobRequest $request, CreateJob $action)
+    /**
+     * Store a newly created job in the database.
+     *
+     * @param StoreJobRequest $request Validated job creation request
+     * @param CreateJob $action Job creation action handler
+     * @return RedirectResponse Redirects to job detail page with success message
+     */
+    public function store(StoreJobRequest $request, CreateJob $action): RedirectResponse
     {
         $validated = $request->validated();
         $user = auth()->user();
@@ -182,7 +224,17 @@ class JobController extends Controller
             ->with('success', 'Job created successfully.');
     }
 
-    public function show(Job $job)
+    /**
+     * Display the specified job with related data.
+     * 
+     * Loads vehicle, remarks, service advisors, and foremen for the detail view.
+     * Enforces assignment authorization for role-restricted users.
+     *
+     * @param Job $job The job to display
+     * @return View The job detail view
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException 403 if not authorized
+     */
+    public function show(Job $job): View
     {
         $this->checkAssignmentAuthorization($job);
 
@@ -192,13 +244,31 @@ class JobController extends Controller
         return view('jobs.show', compact('job', 'serviceAdvisors', 'foremen'));
     }
 
-    public function edit(Job $job)
+    /**
+     * Show the form for editing the specified job.
+     * 
+     * Redirects to show page which now has inline editing.
+     *
+     * @param Job $job The job to edit
+     * @return RedirectResponse Redirects to job detail page
+     */
+    public function edit(Job $job): RedirectResponse
     {
         // Redirect to show page which now has inline editing
         return redirect()->route('jobs.show', $job);
     }
 
-    public function update(UpdateJobRequest $request, Job $job)
+    /**
+     * Update the specified job in the database.
+     * 
+     * Tracks changes to key fields (foreman, work status, need_part, customer_name)
+     * and logs activities for audit trail.
+     *
+     * @param UpdateJobRequest $request Validated job update request
+     * @param Job $job The job to update
+     * @return RedirectResponse Redirects to job detail with success message
+     */
+    public function update(UpdateJobRequest $request, Job $job): RedirectResponse
     {
         // Track key field changes for activity log
         $oldForeman = $job->foreman;
@@ -239,7 +309,15 @@ class JobController extends Controller
             ->with('success', 'Job updated successfully.');
     }
 
-    public function destroy(Job $job)
+    /**
+     * Remove the specified job from the database.
+     * 
+     * Requires admin role. Permanently deletes the job.
+     *
+     * @param Job $job The job to delete
+     * @return RedirectResponse Redirects to jobs index with success message
+     */
+    public function destroy(Job $job): RedirectResponse
     {
         $job->delete();
 
@@ -247,7 +325,19 @@ class JobController extends Controller
             ->with('success', 'Job deleted successfully.');
     }
 
-    public function addRemark(Request $request, Job $job)
+    /**
+     * Add a remark/comment to the specified job.
+     * 
+     * Creates a timestamped remark with user attribution.
+     * Logs activity and notifies assigned users.
+     * Supports both regular form submission and AJAX requests.
+     *
+     * @param Request $request HTTP request containing remark_text
+     * @param Job $job The job to add remark to
+     * @return JsonResponse|RedirectResponse JSON for AJAX or redirect for form submission
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException 403 if not authorized
+     */
+    public function addRemark(Request $request, Job $job): JsonResponse|RedirectResponse
     {
         $this->checkAssignmentAuthorization($job);
 
@@ -296,7 +386,19 @@ class JobController extends Controller
             ->with('success', 'Remark added successfully.');
     }
 
-    public function markInvoiced(Request $request, Job $job, MarkAsInvoiced $action)
+    /**
+     * Mark the specified job as invoiced.
+     * 
+     * Updates job status, creates invoice record, and adds remark.
+     * Requires mark invoiced permission.
+     *
+     * @param Request $request HTTP request with invoice_number and remark
+     * @param Job $job The job to mark as invoiced
+     * @param MarkAsInvoiced $action Invoice marking action handler
+     * @return RedirectResponse Redirects to job detail with success message
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException 403 if not authorized
+     */
+    public function markInvoiced(Request $request, Job $job, MarkAsInvoiced $action): RedirectResponse
     {
         // Enforce permission check
         if (!auth()->user()->canMarkInvoiced()) {
@@ -328,10 +430,16 @@ class JobController extends Controller
     }
 
     /**
-     * Update Order & Parts section only (for Sparepart role)
-     * Only allowed on jobs where need_part = true
+     * Update Order & Parts section only.
+     * 
+     * Designed for Sparepart role to update RQ, Order Part MBINA, and Lain-lain fields.
+     * Only allowed on jobs where need_part = true.
+     *
+     * @param Request $request HTTP request with parts fields (rq, no_order_part_mbina, lain_lain)
+     * @param Job $job The job to update parts for
+     * @return RedirectResponse Redirects to job detail with success/error message
      */
-    public function updateOrderParts(Request $request, Job $job)
+    public function updateOrderParts(Request $request, Job $job): RedirectResponse
     {
         // Check if job needs parts - only then sparepart can edit
         if (!$job->need_part) {
@@ -372,9 +480,16 @@ class JobController extends Controller
     }
 
     /**
-     * Bulk update work status or add bulk remarks
+     * Bulk update multiple jobs at once.
+     * 
+     * Supports two actions:
+     * - work_status: Update work status for selected jobs
+     * - remark: Add same remark to all selected jobs
+     *
+     * @param Request $request HTTP request with job_ids array, action type, and action-specific data
+     * @return RedirectResponse Redirects back with success/error message
      */
-    public function bulkUpdate(Request $request)
+    public function bulkUpdate(Request $request): RedirectResponse
     {
         $request->validate([
             'job_ids' => 'required|array',
@@ -412,9 +527,16 @@ class JobController extends Controller
     }
 
     /**
-     * Kanban board view for jobs
+     * Display Kanban board view for jobs.
+     * 
+     * Shows uninvoiced jobs organized by work status columns.
+     * Supports drag-and-drop status updates. Applies role-based
+     * filtering for SA/Foreman roles.
+     *
+     * @param Request $request HTTP request with optional filters (franchise, service_advisor)
+     * @return View The Kanban board view with jobs grouped by status
      */
-    public function kanban(Request $request)
+    public function kanban(Request $request): View
     {
         $user = auth()->user();
         
@@ -489,9 +611,16 @@ class JobController extends Controller
     }
 
     /**
-     * Update job work status via AJAX (for kanban drag-drop)
+     * Update job work status via AJAX.
+     * 
+     * Used by Kanban board for drag-and-drop status changes.
+     * Logs activity for audit trail.
+     *
+     * @param Request $request HTTP request with work_status field
+     * @param Job $job The job to update
+     * @return JsonResponse JSON response with success status and message
      */
-    public function updateWorkStatus(Request $request, Job $job)
+    public function updateWorkStatus(Request $request, Job $job): JsonResponse
     {
         $validated = $request->validate([
             'work_status' => 'required|string',
@@ -513,9 +642,16 @@ class JobController extends Controller
     }
 
     /**
-     * Export job details to PDF
+     * Export job details to PDF/HTML format.
+     * 
+     * Generates a printable version of the job with all details,
+     * remarks, invoices, and activity timeline.
+     *
+     * @param Job $job The job to export
+     * @return \Illuminate\Http\Response HTML response for printing/saving
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException 403 if not authorized
      */
-    public function exportPdf(Job $job)
+    public function exportPdf(Job $job): \Illuminate\Http\Response
     {
         $this->checkAssignmentAuthorization($job);
         

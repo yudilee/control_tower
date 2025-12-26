@@ -8,16 +8,37 @@ use App\Models\Job;
 use App\Models\Vehicle;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
+use Illuminate\Support\Collection;
 
+/**
+ * Dashboard Controller.
+ * 
+ * Manages the main dashboard view with cached statistics, charts,
+ * and quick-access widgets for workshop operations overview.
+ * 
+ * @package App\Http\Controllers
+ * @author Control Tower Team
+ */
 class DashboardController extends Controller
 {
-    // Cache TTL in seconds (5 minutes)
+    /**
+     * Cache TTL in seconds (5 minutes).
+     * 
+     * @var int
+     */
     const CACHE_TTL = 300;
     
     /**
      * Display the dashboard with cached statistics.
+     * 
+     * Renders overview statistics, work status distribution,
+     * trend charts, SA revenue ranking, aging breakdown,
+     * and recent job lists. All data is cached for performance.
+     *
+     * @return View The dashboard view with all statistics
      */
-    public function index()
+    public function index(): View
     {
         // Cache dashboard stats for 5 minutes
         $stats = Cache::remember('dashboard_stats', self::CACHE_TTL, function () {
@@ -82,7 +103,12 @@ class DashboardController extends Controller
     }
 
     /**
-     * Clear dashboard cache (call when jobs are modified).
+     * Clear dashboard cache.
+     * 
+     * Call this method when jobs are modified to ensure
+     * dashboard displays fresh data on next load.
+     *
+     * @return void
      */
     public static function clearCache(): void
     {
@@ -95,7 +121,17 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get chart data for dashboard.
+     * Get chart data for dashboard visualizations.
+     * 
+     * Generates data for:
+     * - Last 7 days job trend (new vs invoiced)
+     * - Work status pie chart
+     * - Top 5 SA revenue ranking
+     * - Job aging breakdown by date range
+     *
+     * @param Collection $workStatusOptions Available work status dropdown options
+     * @param Collection $workStatusCounts Current count per work status
+     * @return array Chart data arrays for JavaScript rendering
      */
     protected function getChartData($workStatusOptions, $workStatusCounts): array
     {
