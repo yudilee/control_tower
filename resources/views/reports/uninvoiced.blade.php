@@ -434,7 +434,7 @@
                         <td class="col-total_sales text-end">{{ $job->total_sales ? number_format($job->total_sales, 0, ',', '.') : '-' }}</td>
                         <td class="col-labour_sales text-end d-none">{{ $job->labour_sales ? number_format($job->labour_sales, 0, ',', '.') : '-' }}</td>
                         <td class="col-part_sales text-end d-none">{{ $job->part_sales ? number_format($job->part_sales, 0, ',', '.') : '-' }}</td>
-                        <td class="col-work_status"><span class="badge bg-secondary">{{ $job->work_status ?? 'Pending' }}</span></td>
+                        <td class="col-work_status"><x-work-status :value="$job->work_status" /></td>
                         <td class="col-need_part d-none">
                             @if($job->need_part)
                                 <span class="badge bg-warning text-dark"><i class="bi bi-gear"></i> Yes</span>

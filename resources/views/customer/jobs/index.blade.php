@@ -38,7 +38,7 @@
                             @if($job->status === 'invoiced')
                             <span class="badge bg-success">Completed</span>
                             @else
-                            <span class="badge bg-warning text-dark">{{ ucfirst(str_replace('_', ' ', $job->work_status ?? 'In Progress')) }}</span>
+                            <x-work-status :value="$job->work_status" />
                             @endif
                         </td>
                         <td>Rp {{ number_format($job->inv_ppn_meterai ?? $job->total_sales ?? 0, 0, ',', '.') }}</td>

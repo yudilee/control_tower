@@ -216,7 +216,7 @@
                             <td><span class="badge bg-light text-dark border">{{ $job->plate_number }}</span></td>
                             <td class="text-truncate" style="max-width: 150px;">{{ $job->customer_name }}</td>
                             <td>{{ $job->job_date?->format('d M') }}</td>
-                            <td><span class="badge bg-warning text-dark">{{ $job->work_status ?? 'Pending' }}</span></td>
+                            <td><x-work-status :value="$job->work_status" /></td>
                         </tr>
                         @empty
                         <tr>

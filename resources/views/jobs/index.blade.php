@@ -324,7 +324,7 @@
                         <td data-col="pay_type">{{ $job->payment_type }}</td>
                         <td data-col="type_sale">{{ $job->type_sale }}</td>
                         <td data-col="job_desc" class="text-truncate" style="max-width: 100px;"><small>{{ Str::limit($job->job_description, 20) }}</small></td>
-                        <td data-col="work_status">{{ $job->work_status }}</td>
+                        <td data-col="work_status"><x-work-status :value="$job->work_status" /></td>
                         {{-- Sales --}}
                         <td data-col="labour" class="text-end"><small>{{ $job->labour_sales ? number_format($job->labour_sales, 0, ',', '.') : '-' }}</small></td>
                         <td data-col="part" class="text-end"><small>{{ $job->part_sales ? number_format($job->part_sales, 0, ',', '.') : '-' }}</small></td>

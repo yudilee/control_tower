@@ -142,6 +142,22 @@ class DropdownController extends Controller
             'info' => 'Info (Cyan)',
             'dark' => 'Dark',
             'light' => 'Light',
+            'purple' => 'Purple',
+            'pink' => 'Pink',
+            'indigo' => 'Indigo',
+            'orange' => 'Orange',
+            'cyan' => 'Cyan (Bright)',
+            'lime' => 'Lime',
+            'maroon' => 'Maroon',
+            'navy' => 'Navy',
+            'olive' => 'Olive',
+            'magenta' => 'Magenta',
+            'coral' => 'Coral',
+            'gold' => 'Gold',
+            'mint' => 'Mint',
+            'slate' => 'Slate',
+            'khaki' => 'Khaki',
+            'lavender' => 'Lavender',
         ];
     }
 

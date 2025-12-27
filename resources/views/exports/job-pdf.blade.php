@@ -152,7 +152,8 @@
             </div>
             <div class="field">
                 <div class="field-label">Work Status</div>
-                <div class="field-value">{{ $job->work_status ?? 'Pending' }}</div>
+                @php $wsOption = \App\Models\DropdownOption::getOption('work_status', $job->work_status); @endphp
+                <div class="field-value">{{ $wsOption?->label ?? $job->work_status ?? 'Pending' }}</div>
             </div>
             <div class="field">
                 <div class="field-label">Needs Parts</div>

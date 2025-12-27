@@ -41,7 +41,7 @@
                             </tr>
                             <tr>
                                 <td class="text-muted">Work Status</td>
-                                <td><span class="badge bg-info">{{ ucfirst(str_replace('_', ' ', $job->work_status ?? 'Pending')) }}</span></td>
+                                <td><x-work-status :value="$job->work_status" /></td>
                             </tr>
                         </table>
                     </div>

@@ -105,6 +105,24 @@
 .kanban-column[data-color="info"] .kanban-header { background: linear-gradient(135deg, #0dcaf020, #0dcaf040); }
 .kanban-column[data-color="success"] .kanban-header { background: linear-gradient(135deg, #19875420, #19875440); }
 .kanban-column[data-color="danger"] .kanban-header { background: linear-gradient(135deg, #dc354520, #dc354540); }
+.kanban-column[data-color="dark"] .kanban-header { background: linear-gradient(135deg, #21252920, #21252940); }
+.kanban-column[data-color="light"] .kanban-header { background: linear-gradient(135deg, #f8f9fa20, #f8f9fa40); }
+.kanban-column[data-color="purple"] .kanban-header { background: linear-gradient(135deg, #6f42c120, #6f42c140); }
+.kanban-column[data-color="pink"] .kanban-header { background: linear-gradient(135deg, #d6338420, #d6338440); }
+.kanban-column[data-color="indigo"] .kanban-header { background: linear-gradient(135deg, #6610f220, #6610f240); }
+.kanban-column[data-color="orange"] .kanban-header { background: linear-gradient(135deg, #fd7e1420, #fd7e1440); }
+.kanban-column[data-color="cyan"] .kanban-header { background: linear-gradient(135deg, #0dcaf020, #0dcaf040); }
+.kanban-column[data-color="lime"] .kanban-header { background: linear-gradient(135deg, #82c91e20, #82c91e40); }
+.kanban-column[data-color="maroon"] .kanban-header { background: linear-gradient(135deg, #80000020, #80000040); }
+.kanban-column[data-color="navy"] .kanban-header { background: linear-gradient(135deg, #001f3f20, #001f3f40); }
+.kanban-column[data-color="olive"] .kanban-header { background: linear-gradient(135deg, #3d5a3020, #3d5a3040); }
+.kanban-column[data-color="magenta"] .kanban-header { background: linear-gradient(135deg, #ff00ff20, #ff00ff40); }
+.kanban-column[data-color="coral"] .kanban-header { background: linear-gradient(135deg, #ff7f5020, #ff7f5040); }
+.kanban-column[data-color="gold"] .kanban-header { background: linear-gradient(135deg, #ffd70020, #ffd70040); }
+.kanban-column[data-color="mint"] .kanban-header { background: linear-gradient(135deg, #00d2d320, #00d2d340); }
+.kanban-column[data-color="slate"] .kanban-header { background: linear-gradient(135deg, #64748b20, #64748b40); }
+.kanban-column[data-color="khaki"] .kanban-header { background: linear-gradient(135deg, #f0e68c20, #f0e68c40); }
+.kanban-column[data-color="lavender"] .kanban-header { background: linear-gradient(135deg, #e6e6fa20, #e6e6fa40); }
 
 /* Search input in column */
 .kanban-search {
