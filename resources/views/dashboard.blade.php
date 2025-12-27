@@ -111,13 +111,13 @@
             @endphp
             <div class="col-md col-6">
                 <a href="{{ route('jobs.index', ['status' => 'uninvoiced', 'filter_work_status' => $option->value]) }}" class="text-decoration-none">
-                    <div class="card border-0 bg-{{ $option->color }} bg-opacity-10 h-100">
+                    <div class="card border-0 h-100 work-status-card" style="background-color: var(--ws-bg-{{ $option->color }}, rgba(108, 117, 125, 0.1));">
                         <div class="card-body py-3 text-center">
                             @if($option->icon)
                             <i class="bi bi-{{ $option->icon }} fs-3 text-{{ $option->color }} d-block mb-2"></i>
                             @endif
                             <h4 class="mb-0 text-{{ $option->color }}">{{ $count }}</h4>
-                            <small class="text-muted">{{ $option->label }}</small>
+                            <small class="text-body-secondary">{{ $option->label }}</small>
                         </div>
                     </div>
                 </a>

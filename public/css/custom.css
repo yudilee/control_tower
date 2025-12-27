@@ -814,3 +814,105 @@ input:checked+.slider:before {
 
 .bg-lavender { background-color: #e6e6fa !important; color: #1f2937; }
 .text-lavender { color: #7f7fd5 !important; }
+
+/* ----------------------------------------
+   Work Status Card Styling (Theme Compatible)
+   ---------------------------------------- */
+/* Custom color card backgrounds with proper opacity */
+.bg-purple.bg-opacity-10 { background-color: rgba(111, 66, 193, 0.1) !important; }
+.bg-pink.bg-opacity-10 { background-color: rgba(214, 51, 132, 0.1) !important; }
+.bg-indigo.bg-opacity-10 { background-color: rgba(102, 16, 242, 0.1) !important; }
+.bg-orange.bg-opacity-10 { background-color: rgba(253, 126, 20, 0.1) !important; }
+.bg-cyan.bg-opacity-10 { background-color: rgba(13, 202, 240, 0.1) !important; }
+.bg-lime.bg-opacity-10 { background-color: rgba(130, 201, 30, 0.1) !important; }
+.bg-maroon.bg-opacity-10 { background-color: rgba(128, 0, 0, 0.1) !important; }
+.bg-navy.bg-opacity-10 { background-color: rgba(0, 31, 63, 0.1) !important; }
+.bg-olive.bg-opacity-10 { background-color: rgba(61, 90, 48, 0.1) !important; }
+.bg-magenta.bg-opacity-10 { background-color: rgba(255, 0, 255, 0.1) !important; }
+.bg-coral.bg-opacity-10 { background-color: rgba(255, 127, 80, 0.1) !important; }
+.bg-gold.bg-opacity-10 { background-color: rgba(255, 215, 0, 0.1) !important; }
+.bg-mint.bg-opacity-10 { background-color: rgba(0, 210, 211, 0.1) !important; }
+.bg-slate.bg-opacity-10 { background-color: rgba(100, 116, 139, 0.1) !important; }
+.bg-khaki.bg-opacity-10 { background-color: rgba(240, 230, 140, 0.1) !important; }
+.bg-lavender.bg-opacity-10 { background-color: rgba(230, 230, 250, 0.15) !important; }
+
+/* Dark mode - increase opacity for better visibility */
+[data-bs-theme="dark"] .bg-purple.bg-opacity-10 { background-color: rgba(111, 66, 193, 0.25) !important; }
+[data-bs-theme="dark"] .bg-pink.bg-opacity-10 { background-color: rgba(214, 51, 132, 0.25) !important; }
+[data-bs-theme="dark"] .bg-indigo.bg-opacity-10 { background-color: rgba(102, 16, 242, 0.25) !important; }
+[data-bs-theme="dark"] .bg-orange.bg-opacity-10 { background-color: rgba(253, 126, 20, 0.25) !important; }
+[data-bs-theme="dark"] .bg-cyan.bg-opacity-10 { background-color: rgba(13, 202, 240, 0.2) !important; }
+[data-bs-theme="dark"] .bg-lime.bg-opacity-10 { background-color: rgba(130, 201, 30, 0.2) !important; }
+[data-bs-theme="dark"] .bg-maroon.bg-opacity-10 { background-color: rgba(128, 0, 0, 0.3) !important; }
+[data-bs-theme="dark"] .bg-navy.bg-opacity-10 { background-color: rgba(0, 31, 63, 0.3) !important; }
+[data-bs-theme="dark"] .bg-olive.bg-opacity-10 { background-color: rgba(61, 90, 48, 0.3) !important; }
+[data-bs-theme="dark"] .bg-magenta.bg-opacity-10 { background-color: rgba(255, 0, 255, 0.2) !important; }
+[data-bs-theme="dark"] .bg-coral.bg-opacity-10 { background-color: rgba(255, 127, 80, 0.25) !important; }
+[data-bs-theme="dark"] .bg-gold.bg-opacity-10 { background-color: rgba(255, 215, 0, 0.2) !important; }
+[data-bs-theme="dark"] .bg-mint.bg-opacity-10 { background-color: rgba(0, 210, 211, 0.2) !important; }
+[data-bs-theme="dark"] .bg-slate.bg-opacity-10 { background-color: rgba(100, 116, 139, 0.3) !important; }
+[data-bs-theme="dark"] .bg-khaki.bg-opacity-10 { background-color: rgba(240, 230, 140, 0.15) !important; }
+[data-bs-theme="dark"] .bg-lavender.bg-opacity-10 { background-color: rgba(230, 230, 250, 0.2) !important; }
+
+/* CSS Variables for Work Status Card Backgrounds */
+:root {
+    --ws-bg-primary: rgba(13, 110, 253, 0.1);
+    --ws-bg-secondary: rgba(108, 117, 125, 0.1);
+    --ws-bg-success: rgba(25, 135, 84, 0.1);
+    --ws-bg-danger: rgba(220, 53, 69, 0.1);
+    --ws-bg-warning: rgba(255, 193, 7, 0.15);
+    --ws-bg-info: rgba(13, 202, 240, 0.1);
+    --ws-bg-dark: rgba(33, 37, 41, 0.1);
+    --ws-bg-light: rgba(248, 249, 250, 0.5);
+    --ws-bg-purple: rgba(111, 66, 193, 0.15);
+    --ws-bg-pink: rgba(214, 51, 132, 0.15);
+    --ws-bg-indigo: rgba(102, 16, 242, 0.15);
+    --ws-bg-orange: rgba(253, 126, 20, 0.15);
+    --ws-bg-cyan: rgba(13, 202, 240, 0.15);
+    --ws-bg-lime: rgba(130, 201, 30, 0.15);
+    --ws-bg-maroon: rgba(128, 0, 0, 0.15);
+    --ws-bg-navy: rgba(0, 31, 63, 0.15);
+    --ws-bg-olive: rgba(61, 90, 48, 0.15);
+    --ws-bg-magenta: rgba(255, 0, 255, 0.12);
+    --ws-bg-coral: rgba(255, 127, 80, 0.15);
+    --ws-bg-gold: rgba(255, 215, 0, 0.15);
+    --ws-bg-mint: rgba(0, 210, 211, 0.15);
+    --ws-bg-slate: rgba(100, 116, 139, 0.15);
+    --ws-bg-khaki: rgba(240, 230, 140, 0.2);
+    --ws-bg-lavender: rgba(230, 230, 250, 0.3);
+}
+
+[data-bs-theme="dark"] {
+    --ws-bg-primary: rgba(13, 110, 253, 0.2);
+    --ws-bg-secondary: rgba(108, 117, 125, 0.2);
+    --ws-bg-success: rgba(25, 135, 84, 0.2);
+    --ws-bg-danger: rgba(220, 53, 69, 0.2);
+    --ws-bg-warning: rgba(255, 193, 7, 0.2);
+    --ws-bg-info: rgba(13, 202, 240, 0.15);
+    --ws-bg-dark: rgba(33, 37, 41, 0.3);
+    --ws-bg-light: rgba(248, 249, 250, 0.1);
+    --ws-bg-purple: rgba(111, 66, 193, 0.25);
+    --ws-bg-pink: rgba(214, 51, 132, 0.25);
+    --ws-bg-indigo: rgba(102, 16, 242, 0.25);
+    --ws-bg-orange: rgba(253, 126, 20, 0.25);
+    --ws-bg-cyan: rgba(13, 202, 240, 0.2);
+    --ws-bg-lime: rgba(130, 201, 30, 0.2);
+    --ws-bg-maroon: rgba(128, 0, 0, 0.3);
+    --ws-bg-navy: rgba(0, 31, 63, 0.3);
+    --ws-bg-olive: rgba(61, 90, 48, 0.3);
+    --ws-bg-magenta: rgba(255, 0, 255, 0.2);
+    --ws-bg-coral: rgba(255, 127, 80, 0.25);
+    --ws-bg-gold: rgba(255, 215, 0, 0.2);
+    --ws-bg-mint: rgba(0, 210, 211, 0.2);
+    --ws-bg-slate: rgba(100, 116, 139, 0.25);
+    --ws-bg-khaki: rgba(240, 230, 140, 0.15);
+    --ws-bg-lavender: rgba(230, 230, 250, 0.15);
+}
+
+.work-status-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.work-status-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
