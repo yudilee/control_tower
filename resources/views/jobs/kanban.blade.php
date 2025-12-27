@@ -79,9 +79,11 @@
     font-size: 0.75rem;
 }
 .kanban-card .sa-badge {
-    background: var(--bs-light);
+    background: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
     padding: 0.15rem 0.4rem;
     border-radius: 4px;
+    font-weight: 500;
 }
 .kanban-card .age {
     color: var(--bs-secondary);
