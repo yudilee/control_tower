@@ -96,7 +96,7 @@
         </div>
         <div class="card-body">
             <table class="table table-sm table-hover mb-0">
-                <thead class="table-light">
+                <thead>
                     <tr>
                         <th style="width: 40px;">
                             <input type="checkbox" class="form-check-input select-all-group" data-group="{{ $index }}" title="Select all">
@@ -125,7 +125,7 @@
                                    name="groups[{{ $index }}][names][]" value="{{ $item['name'] }}">
                         </td>
                         <td>
-                            <a href="{{ route('customers.show', ['name' => $item['name']]) }}" target="_blank">
+                            <a href="{{ route('customers.show', ['name' => $item['name']]) }}" target="_blank" class="text-primary">
                                 {{ $item['name'] }}
                             </a>
                         </td>
