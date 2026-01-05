@@ -1003,6 +1003,7 @@ class ImportController extends Controller
                     'chassis_number' => $chassisNumber,
                     'status' => 'invoiced',
                     'invoiced_at' => $invoiceDate ?? now(),
+                    'work_status' => 'proses_invoice', // Set final work status for invoiced jobs
                 ], fn($v) => !is_null($v));
 
                 // Normalize job number for matching (trim whitespace, handle numeric comparisons)
