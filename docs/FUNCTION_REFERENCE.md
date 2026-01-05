@@ -91,6 +91,7 @@ Technical reference for developers and advanced users.
 | GET | `/reports/needs-parts` | ReportController@needsParts | Needs parts report |
 | GET | `/reports/aging` | ReportController@aging | Aging report |
 | GET | `/reports/sa-performance` | ReportController@saPerformance | SA performance |
+| GET | `/reports/trends` | TrendsController@index | Trends & Comparisons |
 | GET | `/reports/wip-conflicts` | WipConflictReportController@index | WIP conflicts |
 | GET | `/reports/orphan-vehicles` | OrphanVehicleReportController@index | Orphan vehicles |
 | GET | `/reports/builder` | ReportController@builder | Report builder |
@@ -109,6 +110,8 @@ Technical reference for developers and advanced users.
 |--------|-------|------------|---------|
 | GET | `/imports` | ImportController@index | Import history |
 | GET | `/imports/upload` | ImportController@showUploadForm | Upload form |
+| POST | `/imports/preview` | ImportController@preview | Preview before import |
+| POST | `/imports/confirm` | ImportController@confirmImport | Confirm import |
 | POST | `/imports/progress` | ImportController@importProgress | Import progress job |
 | POST | `/imports/uninvoiced` | ImportController@importUninvoiced | Import uninvoiced |
 | POST | `/imports/invoiced` | ImportController@importInvoiced | Import invoiced |
@@ -200,6 +203,17 @@ Technical reference for developers and advanced users.
 | `getJobColumns()` | Available columns for builder |
 | `buildQuery(Request $request)` | Build query from filters |
 
+### TrendsController
+
+| Method | Purpose |
+|--------|---------|
+| `index(Request $request)` | Main trends dashboard with all charts |
+| `getPeriodComparison(string $period)` | Calculate week/month/quarter comparison |
+| `getSaPerformanceTrends()` | SA close rate over 6 months |
+| `getFranchiseComparison()` | PC vs CV metrics comparison |
+| `getAgingTrends()` | Weekly aging backlog trends |
+| `calculateChange($current, $previous)` | Calculate % change with direction |
+
 ### ImportController
 
 | Method | Purpose |
@@ -213,6 +227,8 @@ Technical reference for developers and advanced users.
 | `importBookingSheet(array $rows)` | Process booking sheet |
 | `importPdiSheet(array $rows)` | Process PDI sheet |
 | `importTowingSheet(array $rows)` | Process towing sheet |
+| `preview(Request $request)` | Preview import with validation |
+| `confirmImport(Request $request)` | Confirm and execute import |
 | `sanitizeText(?string $value)` | Clean text values |
 | `parseDate(?string $value)` | Parse various date formats |
 | `parseAmount(?string $value)` | Parse currency values |

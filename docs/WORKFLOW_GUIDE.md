@@ -167,19 +167,24 @@ flowchart TD
 2. **Upload to Control Tower**
    - Go to **Operations → Import → Upload**
    - Select file
-   - Choose **Progress Job** import type
+   - Click **Preview** button
 
-3. **Process Import**
-   - Click **Import**
+3. **Review Preview**
+   - Check validation summary (valid, warnings, errors)
+   - Review error rows (missing WIP, invalid plate)
+   - Review warnings (existing jobs will be updated)
+
+4. **Confirm Import**
+   - Click **Confirm Import**
    - Watch progress bar
    - Wait for completion
 
-4. **Review Results**
+5. **Review Results**
    - Check success/failed counts
    - Click "View Details" for import summary
    - Review failed rows if any
 
-5. **Handle Failures**
+6. **Handle Failures**
    - Note error messages
    - Fix data in DMS or add manually
    - Re-import if needed
@@ -358,6 +363,17 @@ flowchart LR
 4. Click job to view details
 5. Export as needed
 
+### View Trends & Comparisons
+
+1. Go to **Reports → Trends & Comparisons**
+2. Select period: **Week / Month / Quarter**
+3. Review sections:
+   - **Period Comparison Cards** - New jobs, invoiced, revenue, avg days with % change
+   - **SA Performance Chart** - Close rate trends over 6 months
+   - **Aging Trend** - Weekly backlog trend (>7, >14, >30 days)
+   - **Franchise Comparison** - PC vs CV metrics with variance analysis
+4. Use insights for management decisions
+
 ---
 
 ## 6. Administration Workflows
@@ -442,14 +458,33 @@ flowchart LR
 
 ## Quick Reference
 
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+K` or `S` | Focus search |
+| `N` | New job |
+| `G` → `D` | Go to Dashboard |
+| `G` → `J` | Go to Jobs |
+| `G` → `R` | Go to Reports |
+| `G` → `C` | Go to Customers |
+| `?` | Show shortcuts help |
+| `Esc` | Close modal/search |
+
+### Navigation Quick Reference
+
 | Task | Navigate To |
 |------|-------------|
-| Import data | Operations → Import |
+| Import data (with preview) | Operations → Import |
 | View all jobs | Jobs |
 | Kanban board | Jobs → Kanban View |
+| Print job details | Jobs → [select job] → Print button |
+| Recently viewed jobs | Sidebar → Recently Viewed |
 | Merge duplicates | Customers → Duplicates |
 | Uninvoiced report | Reports → Uninvoiced |
+| Trends & Comparisons | Reports → Trends & Comparisons |
 | Custom report | Reports → Report Builder |
+| Scheduled reports | Admin → Scheduled Reports |
 | Manage users | Admin → Users |
 | Configure backup | Admin → Backups |
 | View audit trail | Admin → Audit Logs |

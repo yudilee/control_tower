@@ -27,16 +27,22 @@ Workshop management system for tracking vehicle service jobs, from entry through
 
 ### 📊 Reports & Data
 - **Report Builder** - Create custom reports with filters and column selection
+- **Trends & Comparisons** - Period comparison, SA performance trends, aging analysis
+- **Scheduled Reports** - Automated email delivery (daily, weekly, monthly)
 - **Saved Reports** - Save frequently used report configurations
 - **Dashboards** - SA Performance, Aging Reports, and Financial overviews
-- **Data Import/Export** - Seamless integration with Excel/CSV data
+- **Data Import with Preview** - Validate data before import with error detection
 - **Data Cleanup** - Tools to manage database growth and archive old records
 
 ### 🤖 Automation & Tools
+- **Keyboard Shortcuts** - Navigate quickly (N=new job, S=search, G+D/J/R/C)
 - **Global Search** - Command palette (Ctrl+K) to find anything quickly
+- **Recently Viewed** - Quick access to last 5 viewed jobs in sidebar
+- **Print-Optimized** - Job details page optimized for A4 printing
 - **Notifications** - In-app alerts for job assignments and updates
 - **Stale Job Alerts** - Automated flagging of jobs needing attention
 - **Customer Merging** - Smart detection and merging of duplicate customer records
+- **Dark Mode** - Toggle between light and dark themes
 
 ---
 
@@ -143,9 +149,12 @@ Quick deploy:
 
 ## Documentation
 
-- [Application Documentation](docs/APPLICATION_DOCUMENTATION.md)
-- [Deployment Guide](docs/DEPLOYMENT_GUIDE.md)
-- [Portainer Deployment](docs/PORTAINER_DEPLOYMENT.md)
+- [Comprehensive Documentation](docs/DOCUMENTATION.md) - Full feature reference
+- [Function Reference](docs/FUNCTION_REFERENCE.md) - Technical API reference
+- [Workflow Guide](docs/WORKFLOW_GUIDE.md) - Step-by-step operational workflows
+- [Role Permissions](docs/ROLE_PERMISSIONS.md) - Permission system details
+- [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) - Installation and deployment
+- [Portainer Deployment](docs/PORTAINER_DEPLOYMENT.md) - Docker deployment
 
 ---
 

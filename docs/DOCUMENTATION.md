@@ -1,7 +1,7 @@
 # Control Tower - Comprehensive Documentation
 
-**Version:** 2.0  
-**Last Updated:** December 2024
+**Version:** 2.5  
+**Last Updated:** January 2026
 
 ---
 
@@ -29,12 +29,13 @@ Control Tower is a workshop management system for tracking vehicle service jobs 
 
 | Category | Features |
 |----------|----------|
-| **Job Operations** | End-to-end tracking, Kanban board, bulk actions, PDF export |
-| **Data Integration** | 5 import types for DMS synchronization |
-| **Reporting** | 11 report types + custom builder with Excel/PDF export |
+| **Job Operations** | End-to-end tracking, Kanban board, bulk actions, PDF export, print-optimized view |
+| **Data Integration** | 5 import types with validation preview for DMS synchronization |
+| **Reporting** | 12 report types + custom builder + Trends & Comparisons with Excel/PDF export |
 | **Customer Experience** | Self-service portal, vehicle tracking, invoice downloads |
 | **Security** | 2FA (TOTP), LDAP, session management, audit logging |
-| **Automation** | Scheduled reports, stale job alerts, duplicate detection |
+| **Automation** | Scheduled reports with email delivery, stale job alerts, duplicate detection |
+| **UX Enhancements** | Keyboard shortcuts, global search, recently viewed jobs, dark mode |
 
 ---
 
@@ -122,6 +123,25 @@ The main dashboard provides:
 - Dashboard data cached for 5 minutes for performance
 - Real-time updates via WebSocket broadcasting
 - Global search (Ctrl+K) for quick navigation
+- Keyboard shortcuts for common actions
+- Recently viewed jobs in sidebar
+
+---
+
+### 4.1.1 Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+K` or `S` | Focus global search |
+| `N` | Create new job |
+| `G` → `D` | Go to Dashboard |
+| `G` → `J` | Go to Jobs |
+| `G` → `R` | Go to Reports |
+| `G` → `C` | Go to Customers |
+| `?` | Show shortcuts help modal |
+| `Esc` | Close modal/search |
+
+*Note: Shortcuts are disabled when typing in input fields.*
 
 ---
 
@@ -137,13 +157,19 @@ The main dashboard provides:
 
 | Section | Contents |
 |---------|----------|
-| **Header** | WIP, Plate Number, Status badges, PDF export button |
+| **Header** | WIP, Plate Number, Status badges, Print & PDF export buttons |
 | **Customer Info** | Customer name, address (linked to customer detail) |
 | **Job Details** | All job fields organized in cards |
 | **Order & Parts** | RQ, Order Part MBINA, Lain-lain (editable by Sparepart) |
 | **Timeline** | Activity feed with all job events |
 | **Remarks** | Chronological remarks with user/role tags |
 | **Invoice History** | All invoice/credit note records |
+
+**Print-Optimized View:**
+- Dedicated print styles for A4 paper
+- Hidden sidebar, buttons, and interactive elements
+- Clean typography and proper page breaks
+- Print button for quick access
 
 #### Kanban Board
 - Drag-drop cards between work status columns
@@ -251,6 +277,7 @@ Track towing services with:
 
 ### Import Features
 
+- **Validation Preview**: Preview data before import with error/warning detection
 - **Progress Tracking**: Visual progress bar during import
 - **History**: Full log with success/fail counts
 - **Error Details**: Failed row logging with error messages
@@ -261,10 +288,11 @@ Track towing services with:
 
 1. Export data from DMS to Excel/ODS
 2. Go to **Operations → Import → Upload**
-3. Select file and import type
-4. Monitor progress
-5. Review results (success, failed, skipped)
-6. View failed row details if needed
+3. Select file and click **Preview** to validate data
+4. Review validation results (valid, warnings, errors)
+5. Click **Confirm Import** to proceed
+6. Monitor progress
+7. Review results (success, failed, skipped)
 
 ---
 
@@ -279,8 +307,26 @@ Track towing services with:
 | **Needs Parts** | Jobs flagged for spare parts | All users |
 | **Aging Report** | Jobs by age with color thresholds | All users |
 | **SA Performance** | Metrics per Service Advisor | All users |
+| **Trends & Comparisons** | Period comparison, SA trends, aging trends | All users |
 | **WIP Conflicts** | Duplicate WIP detection | Control Tower+ |
 | **Orphan Vehicles** | Vehicles without jobs | Control Tower+ |
+
+### Trends & Comparisons Report
+
+Management insights dashboard with:
+
+| Section | Description |
+|---------|-------------|
+| **Period Comparison** | Week/Month/Quarter comparison cards (New Jobs, Invoiced, Revenue, Avg Days) |
+| **SA Performance Trends** | Line chart showing SA close rates over 6 months |
+| **Aging Trend Analysis** | Stacked bar chart of jobs aged >7, >14, >30 days over 4 weeks |
+| **Franchise Comparison** | PC vs CV metrics with bar chart and detailed comparison table |
+
+Key metrics tracked:
+- Change indicators (↑/↓ with percentage)
+- Close rate = (Invoiced / Total) × 100
+- Revenue from invoices
+- Avg days to invoice
 
 ### Report Builder
 
@@ -301,7 +347,16 @@ Custom report creation with:
 
 ### Scheduled Reports
 
-Automated email delivery:
+Automated email delivery with full configuration:
+
+| Feature | Description |
+|---------|-------------|
+| **Report Types** | Uninvoiced, Invoiced, Needs Parts, Aging, Custom |
+| **Schedules** | Daily, Weekly, Monthly with time selection |
+| **Recipients** | Multiple email addresses per report |
+| **Filters** | Apply saved filters to scheduled reports |
+| **Format** | Excel or PDF attachment |
+| **SMTP** | Configurable mail server settings |
 - Configure recipients
 - Set schedule (daily, weekly, monthly)
 - Select report type
