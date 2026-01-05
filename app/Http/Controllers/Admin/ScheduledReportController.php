@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Job;
 use App\Models\ScheduledReport;
+use App\Models\DropdownOption;
 use Illuminate\Http\Request;
 
 class ScheduledReportController extends Controller
@@ -19,8 +21,10 @@ class ScheduledReportController extends Controller
         return view('admin.reports.form', [
             'report' => null,
             'types' => ScheduledReport::getTypes(),
+            'descriptions' => ScheduledReport::getTypeDescriptions(),
             'schedules' => ScheduledReport::getSchedules(),
             'daysOfWeek' => ScheduledReport::getDaysOfWeek(),
+            'filterOptions' => $this->getFilterOptions(),
         ]);
     }
 
@@ -39,8 +43,10 @@ class ScheduledReportController extends Controller
         return view('admin.reports.form', [
             'report' => $scheduledReport,
             'types' => ScheduledReport::getTypes(),
+            'descriptions' => ScheduledReport::getTypeDescriptions(),
             'schedules' => ScheduledReport::getSchedules(),
             'daysOfWeek' => ScheduledReport::getDaysOfWeek(),
+            'filterOptions' => $this->getFilterOptions(),
         ]);
     }
 
@@ -66,7 +72,7 @@ class ScheduledReportController extends Controller
     {
         $scheduledReport->update(['is_active' => !$scheduledReport->is_active]);
 
-        $status = $scheduledReport->is_active ? 'enabled' : 'disabled';
+        $status = $scheduledReport->is_active ? 'activated' : 'paused';
         return redirect()->back()
             ->with('success', "Report {$status}.");
     }
@@ -86,6 +92,53 @@ class ScheduledReportController extends Controller
         }
     }
 
+    /**
+     * Get filter options for the form
+     */
+    private function getFilterOptions(): array
+    {
+        return [
+            'franchise' => Job::whereNotNull('franchise')
+                ->distinct()
+                ->pluck('franchise')
+                ->sort()
+                ->values()
+                ->toArray(),
+            
+            'service_advisor' => Job::whereNotNull('service_advisor')
+                ->distinct()
+                ->pluck('service_advisor')
+                ->sort()
+                ->values()
+                ->toArray(),
+            
+            'foreman' => Job::whereNotNull('foreman')
+                ->distinct()
+                ->pluck('foreman')
+                ->sort()
+                ->values()
+                ->toArray(),
+            
+            'department' => Job::whereNotNull('department')
+                ->distinct()
+                ->pluck('department')
+                ->sort()
+                ->values()
+                ->toArray(),
+            
+            'work_status' => DropdownOption::getOptions('work_status')
+                ->pluck('value')
+                ->toArray(),
+            
+            'type_sale' => Job::whereNotNull('type_sale')
+                ->distinct()
+                ->pluck('type_sale')
+                ->sort()
+                ->values()
+                ->toArray(),
+        ];
+    }
+
     private function validateReport(Request $request): array
     {
         $validated = $request->validate([
@@ -94,8 +147,9 @@ class ScheduledReportController extends Controller
             'schedule' => 'required|string|in:' . implode(',', array_keys(ScheduledReport::getSchedules())),
             'time' => 'required|string',
             'day_of_week' => 'nullable|string|in:' . implode(',', array_keys(ScheduledReport::getDaysOfWeek())),
-            'recipients' => 'required|string', // Comma-separated emails
-            'config.aging_days' => 'nullable|integer|min:1',
+            'day_of_month' => 'nullable|integer|min:1|max:28',
+            'recipients' => 'required|string',
+            'config' => 'nullable|array',
             'is_active' => 'boolean',
         ]);
 
@@ -103,10 +157,21 @@ class ScheduledReportController extends Controller
         $validated['recipients'] = array_map('trim', explode(',', $validated['recipients']));
         $validated['is_active'] = $request->boolean('is_active', true);
         
-        // Build config
-        $validated['config'] = [
-            'aging_days' => $request->input('config.aging_days', 14),
-        ];
+        // Clean up config - remove empty values but keep include_pdf and aging_days
+        $config = $request->input('config', []);
+        $cleanConfig = [];
+        
+        foreach ($config as $key => $value) {
+            if ($key === 'include_pdf') {
+                $cleanConfig[$key] = (bool) $value;
+            } elseif ($key === 'aging_days' && !empty($value)) {
+                $cleanConfig[$key] = (int) $value;
+            } elseif (!empty($value)) {
+                $cleanConfig[$key] = $value;
+            }
+        }
+        
+        $validated['config'] = $cleanConfig;
 
         return $validated;
     }

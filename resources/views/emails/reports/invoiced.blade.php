@@ -8,7 +8,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; }
         .email-container { max-width: 700px; margin: 0 auto; background: #fff; }
-        .header { background: linear-gradient(135deg, #dc3545, #c82333); color: white; padding: 30px; text-align: center; }
+        .header { background: linear-gradient(135deg, #28a745, #1e7e34); color: white; padding: 30px; text-align: center; }
         .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 5px; }
         .header .date { opacity: 0.9; font-size: 14px; }
         .content { padding: 25px; }
@@ -17,29 +17,43 @@
         .summary-grid { display: table; width: 100%; margin-bottom: 25px; }
         .summary-card { display: table-cell; width: 33.33%; padding: 8px; vertical-align: top; }
         .summary-card-inner { border-radius: 12px; padding: 20px; text-align: center; }
-        .summary-card.total .summary-card-inner { background: linear-gradient(135deg, rgba(220, 53, 69, 0.12), rgba(220, 53, 69, 0.2)); border: 1px solid rgba(220, 53, 69, 0.3); }
+        .summary-card.total .summary-card-inner { background: linear-gradient(135deg, rgba(40, 167, 69, 0.12), rgba(40, 167, 69, 0.2)); border: 1px solid rgba(40, 167, 69, 0.3); }
         .summary-card.pc .summary-card-inner { background: linear-gradient(135deg, rgba(0, 123, 255, 0.12), rgba(0, 123, 255, 0.2)); border: 1px solid rgba(0, 123, 255, 0.3); }
         .summary-card.cv .summary-card-inner { background: linear-gradient(135deg, rgba(255, 193, 7, 0.12), rgba(255, 193, 7, 0.2)); border: 1px solid rgba(255, 193, 7, 0.3); }
-        .summary-value { font-size: 28px; font-weight: 700; }
-        .summary-card.total .summary-value { color: #dc3545; }
+        .summary-value { font-size: 18px; font-weight: 700; }
+        .summary-card.total .summary-value { color: #28a745; }
         .summary-card.pc .summary-value { color: #007bff; }
         .summary-card.cv .summary-value { color: #e0a800; }
         .summary-label { font-size: 12px; color: #666; margin-top: 5px; }
-        .summary-sublabel { font-size: 11px; color: #888; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ddd; }
+        .summary-count { font-size: 11px; color: #888; margin-top: 5px; }
         
-        /* Breakdown Section */
+        /* Section */
         .section { margin-bottom: 25px; }
-        .section-header { background: #f8f9fa; padding: 12px 15px; border-radius: 8px 8px 0 0; border-bottom: 2px solid #e9ecef; display: flex; justify-content: space-between; align-items: center; }
+        .section-header { background: #f8f9fa; padding: 12px 15px; border-radius: 8px 8px 0 0; border-bottom: 2px solid #e9ecef; }
         .section-title { font-weight: 600; font-size: 14px; color: #495057; }
-        .section-badge { background: #dc3545; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .section-badge { background: #28a745; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; float: right; }
         
-        /* Work Status Grid */
-        .status-grid { display: table; width: 100%; background: #fff; border: 1px solid #e9ecef; border-top: none; border-radius: 0 0 8px 8px; }
-        .status-row { display: table-row; }
-        .status-cell { display: table-cell; padding: 12px; text-align: center; border-right: 1px solid #e9ecef; width: 16.66%; }
-        .status-cell:last-child { border-right: none; }
-        .status-count { font-size: 20px; font-weight: 700; color: #495057; }
-        .status-name { font-size: 10px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
+        /* Breakdown Grid */
+        .breakdown-grid { display: table; width: 100%; margin-bottom: 20px; }
+        .breakdown-col { display: table-cell; width: 50%; padding: 8px; vertical-align: top; }
+        .breakdown-box { border: 1px solid #e9ecef; border-radius: 8px; overflow: hidden; }
+        .breakdown-header { padding: 10px 12px; font-weight: 600; font-size: 13px; }
+        .breakdown-header.pc { background: linear-gradient(90deg, rgba(0, 123, 255, 0.1), transparent); }
+        .breakdown-header.cv { background: linear-gradient(90deg, rgba(255, 193, 7, 0.15), transparent); }
+        .breakdown-item { padding: 8px 12px; border-top: 1px solid #e9ecef; display: flex; justify-content: space-between; font-size: 12px; }
+        .breakdown-item:nth-child(even) { background: #f8f9fa; }
+        .breakdown-amount { font-weight: 600; font-family: 'Courier New', monospace; }
+        .breakdown-amount.pc { color: #007bff; }
+        .breakdown-amount.cv { color: #e0a800; }
+        
+        /* Department Breakdown */
+        .dept-grid { display: table; width: 100%; background: #fff; border: 1px solid #e9ecef; border-top: none; border-radius: 0 0 8px 8px; }
+        .dept-row { display: table-row; }
+        .dept-cell { display: table-cell; padding: 12px; text-align: center; border-right: 1px solid #e9ecef; }
+        .dept-cell:last-child { border-right: none; }
+        .dept-amount { font-size: 14px; font-weight: 700; color: #007bff; }
+        .dept-name { font-size: 10px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
+        .dept-count { font-size: 10px; color: #adb5bd; }
         
         /* Table */
         table.data-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
@@ -48,32 +62,19 @@
         table.data-table td { padding: 10px; border-bottom: 1px solid #e9ecef; }
         table.data-table td.amount { text-align: right; font-family: 'Courier New', monospace; }
         table.data-table tr:nth-child(even) { background: #f8f9fa; }
-        table.data-table tr:hover { background: #e9ecef; }
-        
-        /* SA & Franchise Breakdown */
-        .breakdown-grid { display: table; width: 100%; }
-        .breakdown-col { display: table-cell; width: 50%; padding: 8px; vertical-align: top; }
-        .breakdown-box { border: 1px solid #e9ecef; border-radius: 8px; overflow: hidden; }
-        .breakdown-header { padding: 10px 12px; font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
-        .breakdown-header.franchise { background: linear-gradient(90deg, rgba(0, 123, 255, 0.1), transparent); }
-        .breakdown-header.sa { background: linear-gradient(90deg, rgba(40, 167, 69, 0.1), transparent); }
-        .breakdown-item { padding: 8px 12px; border-top: 1px solid #e9ecef; display: flex; justify-content: space-between; font-size: 12px; }
-        .breakdown-item:nth-child(even) { background: #f8f9fa; }
         
         /* Filters Applied */
-        .filters-applied { background: #e7f3ff; border: 1px solid #b6d4fe; border-radius: 8px; padding: 12px 15px; margin-bottom: 20px; font-size: 12px; }
-        .filters-applied strong { color: #0d6efd; }
+        .filters-applied { background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 12px 15px; margin-bottom: 20px; font-size: 12px; }
+        .filters-applied strong { color: #28a745; }
         
         /* Footer */
         .footer { background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef; }
         .footer p { font-size: 12px; color: #6c757d; margin: 3px 0; }
         .footer a { color: #0d6efd; text-decoration: none; }
         
-        /* Responsive */
         @media only screen and (max-width: 600px) {
             .summary-grid, .summary-card, .breakdown-grid, .breakdown-col { display: block; width: 100%; }
-            .summary-card { margin-bottom: 10px; padding: 5px 0; }
-            .breakdown-col { margin-bottom: 15px; padding: 0; }
+            .summary-card, .breakdown-col { margin-bottom: 10px; padding: 5px 0; }
         }
     </style>
 </head>
@@ -98,40 +99,41 @@
             <div class="summary-grid">
                 <div class="summary-card total">
                     <div class="summary-card-inner">
-                        <div class="summary-value">{{ number_format($totalJobs) }}</div>
-                        <div class="summary-label">Total Uninvoiced Jobs</div>
-                        <div class="summary-sublabel">Rp {{ number_format($totalAmount, 0, ',', '.') }}</div>
+                        <div class="summary-value">Rp {{ number_format($totalAmount, 0, ',', '.') }}</div>
+                        <div class="summary-label">Total Invoiced</div>
+                        <div class="summary-count">{{ number_format($totalJobs) }} jobs</div>
                     </div>
                 </div>
                 <div class="summary-card pc">
                     <div class="summary-card-inner">
-                        <div class="summary-value">{{ number_format($pcJobs ?? 0) }}</div>
+                        <div class="summary-value">Rp {{ number_format($pcAmount ?? 0, 0, ',', '.') }}</div>
                         <div class="summary-label">PC - Passenger Car</div>
-                        <div class="summary-sublabel">Rp {{ number_format($pcAmount ?? 0, 0, ',', '.') }}</div>
+                        <div class="summary-count">{{ number_format($pcJobs ?? 0) }} jobs</div>
                     </div>
                 </div>
                 <div class="summary-card cv">
                     <div class="summary-card-inner">
-                        <div class="summary-value">{{ number_format($cvJobs ?? 0) }}</div>
+                        <div class="summary-value">Rp {{ number_format($cvAmount ?? 0, 0, ',', '.') }}</div>
                         <div class="summary-label">CV - Commercial Vehicle</div>
-                        <div class="summary-sublabel">Rp {{ number_format($cvAmount ?? 0, 0, ',', '.') }}</div>
+                        <div class="summary-count">{{ number_format($cvJobs ?? 0) }} jobs</div>
                     </div>
                 </div>
             </div>
 
-            @if(isset($workStatusBreakdown) && count($workStatusBreakdown) > 0)
-            <!-- Work Status Breakdown -->
+            @if(isset($deptBreakdown) && $deptBreakdown->isNotEmpty())
+            <!-- Department Breakdown -->
             <div class="section">
                 <div class="section-header">
-                    <span class="section-title">📊 Work Status Breakdown</span>
-                    <span class="section-badge">{{ $totalJobs }} jobs</span>
+                    <span class="section-title">🏢 PC Department Breakdown</span>
+                    <span class="section-badge">{{ $deptBreakdown->sum('count') }} jobs</span>
                 </div>
-                <div class="status-grid">
-                    <div class="status-row">
-                        @foreach($workStatusBreakdown->take(6) as $status)
-                        <div class="status-cell">
-                            <div class="status-count">{{ number_format($status['count']) }}</div>
-                            <div class="status-name">{{ Str::limit($status['name'], 10) }}</div>
+                <div class="dept-grid">
+                    <div class="dept-row">
+                        @foreach($deptBreakdown->take(4) as $dept)
+                        <div class="dept-cell">
+                            <div class="dept-amount">Rp {{ number_format($dept['amount'], 0, ',', '.') }}</div>
+                            <div class="dept-name">{{ $dept['name'] }}</div>
+                            <div class="dept-count">{{ $dept['count'] }} jobs</div>
                         </div>
                         @endforeach
                     </div>
@@ -139,34 +141,34 @@
             </div>
             @endif
 
-            <!-- Franchise & SA Breakdown -->
+            <!-- Type Sale Breakdown -->
             <div class="breakdown-grid">
-                @if(isset($byFranchise) && $byFranchise->isNotEmpty())
+                @if(isset($typeSalePC) && $typeSalePC->isNotEmpty())
                 <div class="breakdown-col">
                     <div class="breakdown-box">
-                        <div class="breakdown-header franchise">
-                            <span>By Franchise</span>
+                        <div class="breakdown-header pc">
+                            <span>🚗 PC Type Sale</span>
                         </div>
-                        @foreach($byFranchise as $franchise => $data)
+                        @foreach($typeSalePC as $ts)
                         <div class="breakdown-item">
-                            <span>{{ $franchise ?: 'Unassigned' }}</span>
-                            <span><strong>{{ $data['count'] }}</strong> jobs • Rp {{ number_format($data['amount'], 0, ',', '.') }}</span>
+                            <span>{{ $ts['name'] }}</span>
+                            <span class="breakdown-amount pc">Rp {{ number_format($ts['amount'], 0, ',', '.') }}</span>
                         </div>
                         @endforeach
                     </div>
                 </div>
                 @endif
 
-                @if(isset($bySA) && $bySA->isNotEmpty())
+                @if(isset($typeSaleCV) && $typeSaleCV->isNotEmpty())
                 <div class="breakdown-col">
                     <div class="breakdown-box">
-                        <div class="breakdown-header sa">
-                            <span>Top Service Advisors</span>
+                        <div class="breakdown-header cv">
+                            <span>🚚 CV Type Sale</span>
                         </div>
-                        @foreach($bySA->take(5) as $sa => $data)
+                        @foreach($typeSaleCV as $ts)
                         <div class="breakdown-item">
-                            <span>{{ $sa ?: 'Unassigned' }}</span>
-                            <span><strong>{{ $data['count'] }}</strong> jobs • Rp {{ number_format($data['amount'], 0, ',', '.') }}</span>
+                            <span>{{ $ts['name'] }}</span>
+                            <span class="breakdown-amount cv">Rp {{ number_format($ts['amount'], 0, ',', '.') }}</span>
                         </div>
                         @endforeach
                     </div>
@@ -175,20 +177,19 @@
             </div>
 
             @if(isset($jobs) && $jobs->isNotEmpty())
-            <!-- Top Jobs Table -->
+            <!-- Recent Invoiced Jobs -->
             <div class="section">
                 <div class="section-header">
-                    <span class="section-title">📋 Recent Uninvoiced Jobs</span>
+                    <span class="section-title">📋 Recent Invoiced Jobs</span>
                     <span class="section-badge">Showing {{ $jobs->count() }} of {{ $totalJobs }}</span>
                 </div>
                 <table class="data-table">
                     <thead>
                         <tr>
                             <th>WIP</th>
-                            <th>Plate</th>
+                            <th>Invoice #</th>
                             <th>SA</th>
-                            <th>Date</th>
-                            <th>Status</th>
+                            <th>Inv Date</th>
                             <th class="amount">Amount</th>
                         </tr>
                     </thead>
@@ -196,11 +197,10 @@
                         @foreach($jobs->take(15) as $job)
                         <tr>
                             <td><strong>{{ $job->job_number }}</strong></td>
-                            <td>{{ $job->plate_number }}</td>
+                            <td>{{ $job->invoice_number }}</td>
                             <td>{{ $job->service_advisor ?? '-' }}</td>
-                            <td>{{ $job->job_date?->format('d/m/Y') }}</td>
-                            <td>{{ $job->work_status ?? 'Pending' }}</td>
-                            <td class="amount">{{ $job->total_sales ? number_format($job->total_sales, 0, ',', '.') : '-' }}</td>
+                            <td>{{ $job->invoice_date?->format('d/m/Y') }}</td>
+                            <td class="amount">{{ number_format($job->inv_ppn_meterai ?? 0, 0, ',', '.') }}</td>
                         </tr>
                         @endforeach
                     </tbody>

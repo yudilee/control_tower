@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class ScheduledReport extends Model
 {
     const TYPE_UNINVOICED = 'uninvoiced';
+    const TYPE_INVOICED = 'invoiced';
     const TYPE_PERFORMANCE = 'performance';
     const TYPE_AGING = 'aging';
     const TYPE_PARTS_PENDING = 'parts_pending';
@@ -21,6 +22,7 @@ class ScheduledReport extends Model
         'schedule',
         'time',
         'day_of_week',
+        'day_of_month',
         'recipients',
         'config',
         'is_active',
@@ -35,16 +37,48 @@ class ScheduledReport extends Model
     ];
 
     /**
-     * Get available report types
+     * Get available report types with descriptions
      */
     public static function getTypes(): array
     {
         return [
-            self::TYPE_UNINVOICED => 'Daily Uninvoiced Summary',
+            self::TYPE_UNINVOICED => 'Uninvoiced Jobs Report',
+            self::TYPE_INVOICED => 'Invoiced Jobs Report',
             self::TYPE_PERFORMANCE => 'SA Performance Report',
             self::TYPE_AGING => 'Aging Job Alerts',
             self::TYPE_PARTS_PENDING => 'Parts Pending Report',
         ];
+    }
+
+    /**
+     * Get report type descriptions
+     */
+    public static function getTypeDescriptions(): array
+    {
+        return [
+            self::TYPE_UNINVOICED => 'Summary of all uninvoiced jobs with franchise, SA, and work status breakdown',
+            self::TYPE_INVOICED => 'Summary of invoiced jobs with amount breakdowns by franchise and department',
+            self::TYPE_PERFORMANCE => 'Service Advisor performance metrics including job counts and sales',
+            self::TYPE_AGING => 'Alert for jobs that have been open longer than the specified threshold',
+            self::TYPE_PARTS_PENDING => 'List of jobs waiting for parts to arrive',
+        ];
+    }
+
+    /**
+     * Get available filters for each report type
+     */
+    public static function getAvailableFilters(string $type): array
+    {
+        $commonFilters = ['franchise', 'service_advisor', 'foreman'];
+        
+        return match($type) {
+            self::TYPE_UNINVOICED => [...$commonFilters, 'work_status', 'need_part', 'department'],
+            self::TYPE_INVOICED => [...$commonFilters, 'department', 'type_sale', 'date_from', 'date_to'],
+            self::TYPE_PERFORMANCE => ['date_from', 'date_to'],
+            self::TYPE_AGING => [...$commonFilters, 'aging_days'],
+            self::TYPE_PARTS_PENDING => $commonFilters,
+            default => $commonFilters,
+        };
     }
 
     /**
