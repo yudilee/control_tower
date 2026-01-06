@@ -18,6 +18,7 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'Administrator', 'slug' => 'administrator', 'description' => 'Full system access', 'is_system' => true],
             ['name' => 'Workshop Manager', 'slug' => 'manager', 'description' => 'Full data access, limited admin', 'is_system' => true],
             ['name' => 'Control Tower', 'slug' => 'control_tower', 'description' => 'Manage jobs and vehicles', 'is_system' => true],
+            ['name' => 'Finance', 'slug' => 'finance', 'description' => 'Manage invoiced jobs and payments', 'is_system' => true],
             ['name' => 'Service Advisor', 'slug' => 'sa', 'description' => 'View jobs and add remarks', 'is_system' => true],
             ['name' => 'Foreman', 'slug' => 'foreman', 'description' => 'View jobs and add remarks', 'is_system' => true],
             ['name' => 'Sparepart', 'slug' => 'sparepart', 'description' => 'Manage spare parts fields only', 'is_system' => true],
@@ -32,6 +33,7 @@ class RolePermissionSeeder extends Seeder
         $this->setupAdminPermissions($doctypes);
         $this->setupManagerPermissions($doctypes);
         $this->setupControlTowerPermissions($doctypes);
+        $this->setupFinancePermissions($doctypes);
         $this->setupSAPermissions($doctypes);
         $this->setupForemanPermissions($doctypes);
         $this->setupSparepartPermissions();
@@ -72,6 +74,25 @@ class RolePermissionSeeder extends Seeder
             'PdiRecord' => ['read' => true, 'write' => true, 'create' => true, 'delete' => false, 'export' => true],
             'TowingRecord' => ['read' => true, 'write' => true, 'create' => true, 'delete' => false, 'export' => true],
             'Customer' => ['read' => true, 'write' => true, 'create' => true, 'delete' => false, 'export' => true],
+            'Remark' => ['read' => true, 'write' => true, 'create' => true, 'delete' => false, 'export' => false],
+            'Report' => ['read' => true, 'write' => false, 'create' => false, 'delete' => false, 'export' => true],
+        ];
+
+        foreach ($permissions as $doctype => $perms) {
+            Permission::updateOrCreate(
+                ['role_id' => $role->id, 'doctype' => $doctype],
+                ['can_read' => $perms['read'], 'can_write' => $perms['write'], 'can_create' => $perms['create'], 'can_delete' => $perms['delete'], 'can_export' => $perms['export']]
+            );
+        }
+    }
+
+    private function setupFinancePermissions(array $doctypes): void
+    {
+        $role = Role::where('slug', 'finance')->first();
+        $permissions = [
+            'Job' => ['read' => true, 'write' => true, 'create' => false, 'delete' => false, 'export' => true],
+            'Vehicle' => ['read' => true, 'write' => false, 'create' => false, 'delete' => false, 'export' => true],
+            'Customer' => ['read' => true, 'write' => false, 'create' => false, 'delete' => false, 'export' => true],
             'Remark' => ['read' => true, 'write' => true, 'create' => true, 'delete' => false, 'export' => false],
             'Report' => ['read' => true, 'write' => false, 'create' => false, 'delete' => false, 'export' => true],
         ];
