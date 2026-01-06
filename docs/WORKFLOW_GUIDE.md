@@ -428,71 +428,71 @@ flowchart LR
 > ⚠️ **Warning:** This permanently deletes data!
 
 1. Go to **Admin → Data Cleanup**
-2. Create backup first (required)
-3. Select tables to clear
-4. Confirm action
-5. Selected data removed
+2. Create backup first (recommended)
+3. Select tables to clear by category:
 
-### After Cleanup: Reimport Workflow
+**Core Data:**
+- Remarks
+- Job Activities
+- Job Invoices
+- Jobs
+- Bookings
+- PDI Records
+- Towing Records
+- Vehicles
+- Customers
 
-After performing a data cleanup and reimporting data, follow these steps to ensure the system works correctly:
+**Customer Links:**
+- Customer Summaries (Lookup Cache) ← Powers Customer Lookup page
+- Customer-Vehicle Links
+
+**Merge & Duplicates:**
+- Duplicate Customer Groups ← Dashboard warning source
+- Customer Merge Suggestions
+- Customer Merge Logs
+- Dismissed Duplicate Groups
+
+**System Data:**
+- Notifications
+- User Sessions
+- Saved Reports
+- Imports
+- Audit Logs
+
+4. Type confirmation text
+5. Click Delete
+6. Cache is automatically cleared after cleanup
+
+### Finance Role Workflow
+
+The **Finance** role manages the payment tracking phase for invoiced jobs:
 
 ```mermaid
-flowchart LR
-    A[Data Cleanup] --> B[Import Data]
-    B --> C[Run Seeder]
-    C --> D[Clear Cache]
-    D --> E[Verify Dashboard]
+stateDiagram-v2
+    [*] --> ProsesInvoice: Job Invoiced
+    ProsesInvoice --> MenungguPembayaran: Processing
+    MenungguPembayaran --> SudahDibayar: Payment Received
+    SudahDibayar --> [*]
 ```
 
-**Steps:**
+**Finance User Capabilities:**
 
-1. **Perform Data Cleanup** (via Admin → Data Cleanup)
+1. **View Invoiced Jobs Only**
+   - Job list filtered to invoiced status
+   - Cannot see uninvoiced/work-in-progress jobs
 
-2. **Import Your Data Files**
-   - Go to **Operations → Import**
-   - Upload Progress Job file
-   - New jobs automatically get `work_status = 'belum_diproses'`
+2. **Kanban Board (3 Columns)**
+   - **Proses Invoice** - Jobs being processed for invoicing
+   - **Menunggu Pembayaran** - Awaiting customer payment
+   - **Sudah Dibayar** - Payment confirmed
 
-3. **Run Dropdown Seeder** (via Portainer Console or SSH)
-   ```bash
-   php artisan db:seed --class=DropdownOptionSeeder
-   ```
-   This recreates:
-   - Work status options (Belum Diproses, Keluhan Awal, etc.)
-   - Payment types (Cash, Credit, Transfer, etc.)
-   - Block/Bay options
+3. **Add Remarks**
+   - Can add payment-related notes
+   - Only on invoiced jobs
 
-4. **Clear Application Cache**
-   ```bash
-   php artisan cache:clear
-   ```
-
-5. **Verify Dashboard**
-   - Check that work status counts show correctly
-   - Verify Kanban board displays jobs
-   - Confirm dropdown options work in filters
-
-### User Role Management
-
-1. Go to **Admin → Roles**
-2. Select or create role
-3. Configure permissions:
-   - **DocType Permissions**: What actions on which models
-   - **Field Permissions**: Which fields editable
-4. Save
-5. Assign role to users
-
-### View Audit Logs
-
-1. Go to **Admin → Audit Logs**
-2. Filter by:
-   - User
-   - Action (created, updated, deleted)
-   - Model type
-   - Date range
-3. View changes with old/new values
-4. Archive old logs as needed
+4. **Drag & Drop**
+   - Move jobs between payment statuses
+   - Restricted to 3 payment columns only
 
 ---
 

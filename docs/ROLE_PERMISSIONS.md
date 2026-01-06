@@ -107,3 +107,37 @@ From there you can:
 - Create custom roles
 - Configure DocType permissions (matrix view)
 - Configure Field permissions per DocType
+
+---
+
+## System Roles
+
+### Finance Role
+
+The **Finance** role has specific restrictions for payment tracking:
+
+| Permission | Description |
+|------------|-------------|
+| View Jobs | Invoiced jobs only |
+| Kanban Columns | Only 3 columns: Proses Invoice → Menunggu Pembayaran → Sudah Dibayar |
+| Edit Kanban | ✅ Can drag jobs between payment columns |
+| Add Remarks | Only on invoiced jobs |
+| View Reports | ✅ Full access |
+| Export | ✅ Allowed |
+
+**To assign Finance role:**
+1. Go to **Admin → Users**
+2. Edit user or create new
+3. Set role to `finance`
+
+### Role Comparison Table
+
+| Role | View Jobs | Edit Kanban | Add Remarks |
+|------|-----------|-------------|-------------|
+| Administrator | All | ❌ | All |
+| Control Tower | All | ✅ | All |
+| Service Advisor | All | ❌ | Assigned only |
+| Foreman | All | ❌ | Assigned only |
+| Sparepart | All | ❌ | need_part jobs only |
+| Finance | Invoiced only | ✅ (3 cols) | Invoiced only |
+| Viewer | All | ❌ | ❌ |
