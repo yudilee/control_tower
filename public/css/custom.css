@@ -20,6 +20,26 @@
     --bs-body-color: #e0e0e0;
     --bs-card-bg: #1a1d20;
     --bs-border-color: #2d3238;
+    --bs-secondary-bg: #2d3238;
+}
+
+[data-bs-theme="dark"] .stat-card-modern {
+    background: #1a1d20;
+    border-color: #2d3238;
+}
+
+[data-bs-theme="dark"] .card {
+    background: #1a1d20;
+    border-color: #2d3238;
+}
+
+[data-bs-theme="dark"] .card-header {
+    background: #252830;
+    border-color: #2d3238;
+}
+
+[data-bs-theme="dark"] .bg-light {
+    background-color: #252830 !important;
 }
 
 body {
