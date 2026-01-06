@@ -28,6 +28,7 @@ class DataCleanupController extends Controller
             'customers' => 'Customers (Portal)',
         ],
         'Merge & Duplicates' => [
+            'duplicate_customer_groups' => 'Duplicate Customer Groups',
             'customer_merge_suggestions' => 'Customer Merge Suggestions',
             'customer_merge_logs' => 'Customer Merge Logs',
             'dismissed_duplicate_groups' => 'Dismissed Duplicate Groups',
@@ -88,6 +89,7 @@ class DataCleanupController extends Controller
                 'remarks',
                 'job_activities',
                 'job_invoices',
+                'duplicate_customer_groups',
                 'customer_merge_suggestions',
                 'customer_merge_logs',
                 'dismissed_duplicate_groups',
