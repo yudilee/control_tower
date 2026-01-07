@@ -96,6 +96,34 @@ services:
     depends_on:
       - db
 
+  # Scheduler service - runs Laravel scheduler every minute
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: control_tower_scheduler
+    restart: unless-stopped
+    working_dir: /var/www
+    entrypoint: /bin/sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    volumes:
+      - app_data:/var/www/storage
+    environment:
+      - APP_NAME=Control Tower
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=http://192.168.99.123:8080
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=control_tower
+      - DB_USERNAME=control_tower
+      - DB_PASSWORD=secret123
+    networks:
+      - control_tower_net
+    depends_on:
+      - app
+      - db
+
   webserver:
     image: nginx:alpine
     container_name: control_tower_web

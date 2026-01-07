@@ -67,8 +67,9 @@ class ReportEmailService
 
     /**
      * Apply common filters to a query
+     * @param bool $useInvoiceDate - if true, filter on invoice_date; if false, filter on job_date
      */
-    private function applyFilters(Builder $query, array $config): Builder
+    private function applyFilters(Builder $query, array $config, bool $useInvoiceDate = false): Builder
     {
         if (!empty($config['franchise'])) {
             $query->where('franchise', $config['franchise']);
@@ -98,11 +99,12 @@ class ReportEmailService
             $query->where('type_sale', $config['type_sale']);
         }
         
-        // Handle date period for invoiced/performance reports
+        // Handle date period - use correct date field based on job status
         if (!empty($config['date_period'])) {
             $dates = $this->getDateRangeFromPeriod($config['date_period']);
             if ($dates) {
-                $query->whereBetween('invoice_date', [$dates['from'], $dates['to']]);
+                $dateField = $useInvoiceDate ? 'invoice_date' : 'job_date';
+                $query->whereBetween($dateField, [$dates['from'], $dates['to']]);
             }
         }
         
@@ -159,7 +161,7 @@ class ReportEmailService
     private function getUninvoicedData(array $config = []): array
     {
         $query = Job::uninvoiced()->orderBy('job_date', 'desc');
-        $query = $this->applyFilters($query, $config);
+        $query = $this->applyFilters($query, $config, false); // Use job_date for uninvoiced
         
         $jobs = $query->get();
 
@@ -238,7 +240,7 @@ class ReportEmailService
     private function getInvoicedData(array $config = []): array
     {
         $query = Job::invoiced()->orderBy('invoice_date', 'desc');
-        $query = $this->applyFilters($query, $config);
+        $query = $this->applyFilters($query, $config, true); // Use invoice_date for invoiced
         
         $jobs = $query->get();
         
@@ -354,7 +356,11 @@ class ReportEmailService
             ->where('job_date', '<', $cutoffDate)
             ->orderBy('job_date', 'asc');
         
-        $query = $this->applyFilters($query, $config);
+        // Remove date_period from config - aging already has its own date logic
+        $agingConfig = $config;
+        unset($agingConfig['date_period']);
+        
+        $query = $this->applyFilters($query, $agingConfig, false);
         
         $jobs = $query->get();
         
@@ -402,7 +408,7 @@ class ReportEmailService
             ->where('need_part', true)
             ->orderBy('job_date', 'desc');
         
-        $query = $this->applyFilters($query, $config);
+        $query = $this->applyFilters($query, $config, false); // Use job_date for parts pending
         
         $jobs = $query->get();
 
