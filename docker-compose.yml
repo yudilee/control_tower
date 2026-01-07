@@ -26,6 +26,8 @@ services:
     restart: unless-stopped
     working_dir: /var/www
     entrypoint: /bin/sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    environment:
+      - TZ=Asia/Jakarta
     volumes:
       - .:/var/www
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
