@@ -127,7 +127,35 @@ class ScheduledReport extends Model
             return false;
         }
 
-        // Check schedule type
+        // Check if already sent in current period
+        if ($this->last_sent_at) {
+            $lastSent = $this->last_sent_at;
+            
+            switch ($this->schedule) {
+                case self::SCHEDULE_DAILY:
+                    // Already sent today
+                    if ($lastSent->isToday()) {
+                        return false;
+                    }
+                    break;
+                    
+                case self::SCHEDULE_WEEKLY:
+                    // Already sent this week
+                    if ($lastSent->isSameWeek($now)) {
+                        return false;
+                    }
+                    break;
+                    
+                case self::SCHEDULE_MONTHLY:
+                    // Already sent this month
+                    if ($lastSent->isSameMonth($now)) {
+                        return false;
+                    }
+                    break;
+            }
+        }
+
+        // Check schedule type matches current day
         switch ($this->schedule) {
             case self::SCHEDULE_DAILY:
                 return true;
@@ -137,7 +165,7 @@ class ScheduledReport extends Model
                 return $now->dayOfWeek === ($dayMap[$this->day_of_week] ?? 1);
 
             case self::SCHEDULE_MONTHLY:
-                return $now->day === 1;
+                return $now->day === ($this->day_of_month ?? 1);
 
             default:
                 return false;
