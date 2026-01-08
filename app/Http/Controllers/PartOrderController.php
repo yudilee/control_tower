@@ -74,12 +74,20 @@ class PartOrderController extends Controller
     public function create(Request $request)
     {
         $job = null;
+        $jobs = collect();
+        
         if ($request->filled('job_id')) {
             $job = Job::findOrFail($request->job_id);
+        } else {
+            // Get all jobs that need parts (uninvoiced only)
+            $jobs = Job::uninvoiced()
+                ->where('need_part', true)
+                ->orderBy('job_date', 'desc')
+                ->get(['id', 'job_number', 'customer_name', 'plate_number']);
         }
 
         $statuses = PartOrder::getStatuses();
-        return view('parts.form', compact('job', 'statuses'));
+        return view('parts.form', compact('job', 'jobs', 'statuses'));
     }
 
     /**

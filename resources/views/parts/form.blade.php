@@ -33,8 +33,16 @@
                                 </div>
                             @else
                                 <select name="job_id" id="job_id" class="form-select @error('job_id') is-invalid @enderror" required>
-                                    <option value="">Select a job...</option>
+                                    <option value="">Select a job that needs parts...</option>
+                                    @forelse($jobs as $jobOption)
+                                        <option value="{{ $jobOption->id }}" {{ old('job_id') == $jobOption->id ? 'selected' : '' }}>
+                                            {{ $jobOption->job_number }} - {{ $jobOption->plate_number }} - {{ $jobOption->customer_name ?? 'No customer' }}
+                                        </option>
+                                    @empty
+                                        <option value="" disabled>No jobs with "Needs Parts" found</option>
+                                    @endforelse
                                 </select>
+                                <div class="form-text">Only showing uninvoiced jobs marked as "Needs Parts"</div>
                                 @error('job_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
