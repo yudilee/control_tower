@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Customer;
 use App\Models\Vehicle;
 use App\Models\AuditLog;
+use App\Models\Import;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -16,13 +17,15 @@ class DmsImportService
     protected int $updated = 0;
     protected int $errors = 0;
     protected array $errorMessages = [];
+    protected ?string $fileName = null;
 
     /**
      * Import customers from Excel file
      */
-    public function importCustomers(string $filePath): array
+    public function importCustomers(string $filePath, ?string $fileName = null): array
     {
         $this->resetCounters();
+        $this->fileName = $fileName ?? basename($filePath);
         
         try {
             $spreadsheet = IOFactory::load($filePath);
@@ -48,6 +51,9 @@ class DmsImportService
                 }
             }
             
+            // Create import history record
+            $import = $this->createImportRecord('dms_customers');
+            
             DB::commit();
             
         } catch (\Exception $e) {
@@ -55,15 +61,17 @@ class DmsImportService
             throw $e;
         }
         
-        return $this->getResults('customers');
+        return $this->getResults('customers', $import ?? null);
     }
+
 
     /**
      * Import vehicles from Excel file
      */
-    public function importVehicles(string $filePath): array
+    public function importVehicles(string $filePath, ?string $fileName = null): array
     {
         $this->resetCounters();
+        $this->fileName = $fileName ?? basename($filePath);
         
         try {
             $spreadsheet = IOFactory::load($filePath);
@@ -89,6 +97,9 @@ class DmsImportService
                 }
             }
             
+            // Create import history record
+            $import = $this->createImportRecord('dms_vehicles');
+            
             DB::commit();
             
         } catch (\Exception $e) {
@@ -96,7 +107,7 @@ class DmsImportService
             throw $e;
         }
         
-        return $this->getResults('vehicles');
+        return $this->getResults('vehicles', $import ?? null);
     }
 
     /**
@@ -419,9 +430,25 @@ class DmsImportService
     }
 
     /**
+     * Create import history record
+     */
+    protected function createImportRecord(string $importType): Import
+    {
+        return Import::create([
+            'file_name' => $this->fileName,
+            'import_type' => $importType,
+            'records_imported' => $this->created,
+            'records_updated' => $this->updated,
+            'records_failed' => $this->errors,
+            'failed_rows' => array_slice($this->errorMessages, 0, 100), // Limit to 100 errors
+            'imported_by' => auth()->id(),
+        ]);
+    }
+
+    /**
      * Get import results
      */
-    protected function getResults(string $type): array
+    protected function getResults(string $type, ?Import $import = null): array
     {
         return [
             'type' => $type,
@@ -430,6 +457,8 @@ class DmsImportService
             'errors' => $this->errors,
             'error_messages' => $this->errorMessages,
             'total' => $this->created + $this->updated,
+            'import_id' => $import?->id,
         ];
     }
 }
+

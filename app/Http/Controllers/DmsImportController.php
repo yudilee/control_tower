@@ -41,9 +41,10 @@ class DmsImportController extends Controller
             $file = $request->file('file');
             $path = $file->storeAs('temp', 'customer_import_' . time() . '.' . $file->getClientOriginalExtension());
             $fullPath = storage_path('app/' . $path);
+            $originalName = $file->getClientOriginalName();
 
             $service = new DmsImportService();
-            $results = $service->importCustomers($fullPath);
+            $results = $service->importCustomers($fullPath, $originalName);
 
             // Clean up temp file
             Storage::delete($path);
@@ -73,9 +74,10 @@ class DmsImportController extends Controller
             $file = $request->file('file');
             $path = $file->storeAs('temp', 'vehicle_import_' . time() . '.' . $file->getClientOriginalExtension());
             $fullPath = storage_path('app/' . $path);
+            $originalName = $file->getClientOriginalName();
 
             $service = new DmsImportService();
-            $results = $service->importVehicles($fullPath);
+            $results = $service->importVehicles($fullPath, $originalName);
 
             // Clean up temp file
             Storage::delete($path);
