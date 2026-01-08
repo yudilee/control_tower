@@ -22,6 +22,12 @@ class Vehicle extends Model
         'customer_phone',
         'is_in_workshop',
         'import_id',
+        // DMS fields
+        'dms_magic', 'customer_dms_magic',
+        'franchise', 'variant', 'description',
+        'mhl_number', 'engine_number',
+        'registration_date', 'last_service_date',
+        'dms_imported_at',
     ];
 
     protected function casts(): array

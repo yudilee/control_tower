@@ -351,6 +351,11 @@
                             <i class="bi bi-clock-history"></i> Scheduler
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.dms-import.*') ? 'active' : '' }}" href="{{ route('admin.dms-import.index') }}">
+                            <i class="bi bi-cloud-upload"></i> DMS Import
+                        </a>
+                    </li>
                 </div>
                 @endif
 

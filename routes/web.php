@@ -252,6 +252,11 @@ Route::middleware('auth')->group(function () {
         Route::post('scheduled-reports/{scheduledReport}/send', [\App\Http\Controllers\Admin\ScheduledReportController::class, 'sendNow'])->name('scheduled-reports.send');
         Route::post('report-settings/smtp/test', [\App\Http\Controllers\Admin\ReportSettingsController::class, 'testSmtp'])->name('report-settings.test-smtp');
 
+        // DMS Import
+        Route::get('dms-import', [\App\Http\Controllers\DmsImportController::class, 'index'])->name('dms-import.index');
+        Route::post('dms-import/customers', [\App\Http\Controllers\DmsImportController::class, 'importCustomers'])->name('dms-import.customers');
+        Route::post('dms-import/vehicles', [\App\Http\Controllers\DmsImportController::class, 'importVehicles'])->name('dms-import.vehicles');
+
         // Role Management
         Route::get('roles', [\App\Http\Controllers\Admin\RoleController::class, 'index'])->name('roles.index');
         Route::get('roles/create', [\App\Http\Controllers\Admin\RoleController::class, 'create'])->name('roles.create');

@@ -23,6 +23,12 @@ class Customer extends Authenticatable
         'verified',
         'verification_token',
         'email_verified_at',
+        // DMS fields
+        'dms_magic',
+        'address_1', 'address_2', 'address_3', 'address_4', 'address_5',
+        'company_name', 'department',
+        'phone_1', 'phone_2', 'phone_3', 'phone_4',
+        'dms_created_at', 'dms_imported_at',
     ];
 
     protected $hidden = [
