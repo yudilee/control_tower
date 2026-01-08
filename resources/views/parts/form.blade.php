@@ -36,7 +36,7 @@
                                     <option value="">Select a job that needs parts...</option>
                                     @forelse($jobs as $jobOption)
                                         <option value="{{ $jobOption->id }}" {{ old('job_id') == $jobOption->id ? 'selected' : '' }}>
-                                            {{ $jobOption->job_number }} - {{ $jobOption->plate_number }} - {{ $jobOption->customer_name ?? 'No customer' }}
+                                            {{ $jobOption->job_number }} - {{ $jobOption->customer_name ?? 'No customer' }} ({{ $jobOption->plate_number }})
                                         </option>
                                     @empty
                                         <option value="" disabled>No jobs with "Needs Parts" found</option>
