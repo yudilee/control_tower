@@ -284,6 +284,19 @@ Route::middleware('auth')->group(function () {
         Route::post('audit-logs/settings', [\App\Http\Controllers\Admin\AuditLogController::class, 'updateSettings'])->name('audit-logs.settings');
         Route::post('audit-logs/clear-archives', [\App\Http\Controllers\Admin\AuditLogController::class, 'clearArchives'])->name('audit-logs.clear-archives');
         Route::get('audit-logs/export', [\App\Http\Controllers\Admin\AuditLogController::class, 'exportArchives'])->name('audit-logs.export');
+
+        // Customer Alias Management (for linking job customers to DMS customers)
+        Route::get('customer-aliases', [\App\Http\Controllers\Admin\CustomerAliasController::class, 'index'])->name('customer-aliases.index');
+        Route::post('customer-aliases', [\App\Http\Controllers\Admin\CustomerAliasController::class, 'store'])->name('customer-aliases.store');
+        Route::post('customer-aliases/link-direct', [\App\Http\Controllers\Admin\CustomerAliasController::class, 'linkDirect'])->name('customer-aliases.link-direct');
+        Route::post('customer-aliases/bulk-link', [\App\Http\Controllers\Admin\CustomerAliasController::class, 'bulkLink'])->name('customer-aliases.bulk-link');
+        Route::delete('customer-aliases/{alias}', [\App\Http\Controllers\Admin\CustomerAliasController::class, 'destroy'])->name('customer-aliases.destroy');
+        Route::get('customer-aliases/suggest', [\App\Http\Controllers\Admin\CustomerAliasController::class, 'suggest'])->name('customer-aliases.suggest');
+
+        // DMS Import
+        Route::get('dms-import', [\App\Http\Controllers\DmsImportController::class, 'index'])->name('dms-import.index');
+        Route::post('dms-import/customers', [\App\Http\Controllers\DmsImportController::class, 'importCustomers'])->name('dms-import.customers');
+        Route::post('dms-import/vehicles', [\App\Http\Controllers\DmsImportController::class, 'importVehicles'])->name('dms-import.vehicles');
     });
 
     // Delete operations - Admin only (outside prefix to keep normal route names)

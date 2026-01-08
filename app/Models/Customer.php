@@ -43,7 +43,7 @@ class Customer extends Authenticatable
     ];
 
     /**
-     * Vehicles owned by this customer
+     * Vehicles owned by this customer (via pivot table - customer portal)
      */
     public function vehicles(): BelongsToMany
     {
@@ -53,7 +53,31 @@ class Customer extends Authenticatable
     }
 
     /**
-     * Get jobs for all customer's vehicles
+     * Vehicles linked via customer_id foreign key (DMS import)
+     */
+    public function linkedVehicles(): HasMany
+    {
+        return $this->hasMany(Vehicle::class);
+    }
+
+    /**
+     * Jobs linked via customer_id foreign key (DMS import)
+     */
+    public function linkedJobs(): HasMany
+    {
+        return $this->hasMany(Job::class);
+    }
+
+    /**
+     * Customer name aliases for invoice matching
+     */
+    public function aliases(): HasMany
+    {
+        return $this->hasMany(CustomerAlias::class);
+    }
+
+    /**
+     * Get jobs for all customer's vehicles (legacy method)
      */
     public function jobs()
     {

@@ -244,6 +244,18 @@ class DmsImportService
             $data['customer_name'] = $customerName;
         }
 
+        // Link to customer via customer_dms_magic
+        if ($customerDmsMagic) {
+            $customer = Customer::where('dms_magic', (string) $customerDmsMagic)->first();
+            if ($customer) {
+                $data['customer_id'] = $customer->id;
+                // Use customer name from database if not in row
+                if (!$customerName) {
+                    $data['customer_name'] = $customer->name;
+                }
+            }
+        }
+
         // Filter out null values for update
         $updateData = array_filter($data, fn($v) => $v !== null && $v !== '');
 

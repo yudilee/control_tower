@@ -109,6 +109,7 @@ class Job extends Model
         'account_no',
         'date_first_reg',
         'customer_name',
+        'customer_id',
         'customer_address',
         'service_advisor',
         'technician',
@@ -208,6 +209,14 @@ class Job extends Model
     public function vehicle(): BelongsTo
     {
         return $this->belongsTo(Vehicle::class);
+    }
+
+    /**
+     * The customer associated with this job (via customer_id FK)
+     */
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     public function remarks(): HasMany

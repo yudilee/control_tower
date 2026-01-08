@@ -20,6 +20,7 @@ class Vehicle extends Model
         'vin',
         'customer_name',
         'customer_phone',
+        'customer_id',
         'is_in_workshop',
         'import_id',
         // DMS fields
@@ -35,6 +36,14 @@ class Vehicle extends Model
         return [
             'is_in_workshop' => 'boolean',
         ];
+    }
+
+    /**
+     * The customer who owns this vehicle (via customer_id FK)
+     */
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     public function jobs(): HasMany

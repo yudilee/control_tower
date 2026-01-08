@@ -351,6 +351,11 @@
                             <i class="bi bi-clock-history"></i> Scheduler
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.customer-aliases.*') ? 'active' : '' }}" href="{{ route('admin.customer-aliases.index') }}">
+                            <i class="bi bi-link-45deg"></i> Customer Aliases
+                        </a>
+                    </li>
                 </div>
                 @endif
 
