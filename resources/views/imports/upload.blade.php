@@ -79,138 +79,225 @@
     <h1><i class="bi bi-file-earmark-arrow-up me-2"></i>Upload Data</h1>
 </div>
 
-<div class="row g-4">
-<div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-header bg-primary text-white">
-                <i class="bi bi-clipboard-check me-2"></i>Import Progress Data
-            </div>
-            <div class="card-body">
-                <p class="text-muted">Import job progress data from PROGRES JOB file. This will create new jobs or update existing ones.</p>
-                <form action="{{ route('imports.preview') }}" method="POST" enctype="multipart/form-data" class="import-form">
-                    @csrf
-                    <input type="hidden" name="import_type" value="progress">
-
-                    <div class="mb-3">
-                        <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.ods,.csv" required>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary flex-grow-1">
-                            <i class="bi bi-eye me-1"></i>Preview
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary" onclick="directImport(this.form, 'progress')" title="Skip preview">
-                            <i class="bi bi-lightning"></i>
-                        </button>
-                    </div>
-                </form>
-            </div>
+<!-- Workflow Guide -->
+<div class="alert alert-light border mb-4">
+    <h5 class="mb-3"><i class="bi bi-diagram-3 me-2"></i>Recommended Import Workflow</h5>
+    <div class="d-flex align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-center">
+            <span class="badge bg-primary rounded-pill me-2" style="width: 28px; height: 28px; line-height: 20px;">1</span>
+            <span class="text-muted">DMS Customers</span>
+        </div>
+        <i class="bi bi-arrow-right text-muted"></i>
+        <div class="d-flex align-items-center">
+            <span class="badge bg-primary rounded-pill me-2" style="width: 28px; height: 28px; line-height: 20px;">2</span>
+            <span class="text-muted">DMS Vehicles</span>
+        </div>
+        <i class="bi bi-arrow-right text-muted"></i>
+        <div class="d-flex align-items-center">
+            <span class="badge bg-warning text-dark rounded-pill me-2" style="width: 28px; height: 28px; line-height: 20px;">3</span>
+            <span class="text-muted">Uninvoiced Jobs</span>
+        </div>
+        <i class="bi bi-arrow-right text-muted"></i>
+        <div class="d-flex align-items-center">
+            <span class="badge bg-success rounded-pill me-2" style="width: 28px; height: 28px; line-height: 20px;">4</span>
+            <span class="text-muted">Invoiced Jobs</span>
+        </div>
+        <i class="bi bi-arrow-right text-muted d-none d-lg-block"></i>
+        <div class="d-flex align-items-center d-none d-lg-flex">
+            <span class="badge bg-info rounded-pill me-2" style="width: 28px; height: 28px; line-height: 20px;">5</span>
+            <span class="text-muted">Refresh Summaries</span>
         </div>
     </div>
+</div>
 
-    <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-header bg-warning text-dark">
-                <i class="bi bi-exclamation-triangle me-2"></i>Import Uninvoiced Data
-            </div>
-            <div class="card-body">
-                <p class="text-muted">Import uninvoiced job report from DMS (uiws.xls). This will merge data with existing jobs.</p>
-                <form action="{{ route('imports.uninvoiced') }}" method="POST" enctype="multipart/form-data" class="import-form">
-                    @csrf
-                    <div class="mb-3">
-                        <label class="form-label">Franchise <span class="text-danger">*</span></label>
-                        <select name="franchise" class="form-select" required>
-                            <option value="PC">PC - Passenger Car</option>
-                            <option value="CV">CV - Commercial Vehicle</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.ods,.csv" required>
-                    </div>
-                    <button type="submit" class="btn btn-warning w-100">
-                        <i class="bi bi-upload me-1"></i>Import Uninvoiced
-                    </button>
-                </form>
-            </div>
-        </div>
+<!-- Step 1: DMS Master Data -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
+        <span>
+            <span class="badge bg-white text-primary me-2 rounded-pill">Step 1-2</span>
+            <i class="bi bi-database me-2"></i>DMS Master Data Import
+        </span>
+        <small class="opacity-75">Import these FIRST to enable customer linking</small>
     </div>
-
-    <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-header bg-success text-white">
-                <i class="bi bi-check-circle me-2"></i>Import Invoiced Data
+    <div class="card-body">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card h-100 border-info">
+                    <div class="card-header bg-info text-white">
+                        <span class="badge bg-white text-info me-2">1</span>
+                        <i class="bi bi-people me-2"></i>Import DMS Customers
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-2">Import customer master data from DMS. This creates customer records for linking.</p>
+                        <form action="{{ route('admin.dms-import.customers') }}" method="POST" enctype="multipart/form-data" class="import-form">
+                            @csrf
+                            <div class="mb-3">
+                                <input type="file" name="file" class="form-control" accept=".xls,.xlsx" required>
+                                <div class="form-text">Expected: Magic cust, Title, Nama Customer, Address 1-5, Company Name, Magic Comp, Email, Telp 01-04</div>
+                            </div>
+                            <button type="submit" class="btn btn-info w-100 text-white">
+                                <i class="bi bi-upload me-1"></i>Import Customers
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <p class="text-muted">Import invoiced job data (INV sheet). This will mark matching jobs as invoiced.</p>
-                <form action="{{ route('imports.invoiced') }}" method="POST" enctype="multipart/form-data" class="import-form">
-                    @csrf
-                     <div class="mb-3">
-                        <label class="form-label">Franchise <span class="text-danger">*</span></label>
-                        <select name="franchise" class="form-select" required>
-                            <option value="PC">PC - Passenger Car</option>
-                            <option value="CV">CV - Commercial Vehicle</option>
-                        </select>
+
+            <div class="col-md-6">
+                <div class="card h-100 border-secondary">
+                    <div class="card-header bg-secondary text-white">
+                        <span class="badge bg-white text-secondary me-2">2</span>
+                        <i class="bi bi-truck me-2"></i>Import DMS Vehicles
                     </div>
-                    <div class="mb-3">
-                        <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.ods,.csv" required>
+                    <div class="card-body">
+                        <p class="text-muted mb-2">Import vehicle master data from DMS. Links vehicles to customers.</p>
+                        <form action="{{ route('admin.dms-import.vehicles') }}" method="POST" enctype="multipart/form-data" class="import-form">
+                            @csrf
+                            <div class="mb-3">
+                                <input type="file" name="file" class="form-control" accept=".xls,.xlsx" required>
+                                <div class="form-text">Expected: Magic, Reg No, Model, Chassis, Customer Magic, Phone1-4</div>
+                            </div>
+                            <button type="submit" class="btn btn-secondary w-100">
+                                <i class="bi bi-upload me-1"></i>Import Vehicles
+                            </button>
+                        </form>
                     </div>
-                    <button type="submit" class="btn btn-success w-100">
-                        <i class="bi bi-upload me-1"></i>Import Invoiced
-                    </button>
-                </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-@if(Auth::user()->role === 'admin')
-<!-- DMS Imports - Admin Only -->
-<h5 class="mt-4 mb-3"><i class="bi bi-database me-2"></i>DMS Master Data Import <span class="badge bg-danger">Admin Only</span></h5>
-<div class="row g-4">
-    <div class="col-md-6">
-        <div class="card h-100 border-info">
-            <div class="card-header bg-info text-white">
-                <i class="bi bi-people me-2"></i>Import DMS Customers
-            </div>
-            <div class="card-body">
-                <p class="text-muted">Import customer master data from DMS.</p>
-                <form action="{{ route('admin.dms-import.customers') }}" method="POST" enctype="multipart/form-data" class="import-form">
-                    @csrf
-                    <div class="mb-3">
-                        <input type="file" name="file" class="form-control" accept=".xls,.xlsx" required>
-                        <div class="form-text">Expected: Magic cust, Nama Customer, Address 1-5, Company, Email</div>
-                    </div>
-                    <button type="submit" class="btn btn-info w-100 text-white">
-                        <i class="bi bi-upload me-1"></i>Import Customers
-                    </button>
-                </form>
-            </div>
-        </div>
+<!-- Step 3-4: Job Data -->
+<div class="card mb-4">
+    <div class="card-header bg-dark text-white d-flex align-items-center justify-content-between">
+        <span>
+            <span class="badge bg-white text-dark me-2 rounded-pill">Step 3-4</span>
+            <i class="bi bi-briefcase me-2"></i>Job Data Import
+        </span>
+        <small class="opacity-75">Jobs will auto-link to DMS customers</small>
     </div>
-
-    <div class="col-md-6">
-        <div class="card h-100 border-secondary">
-            <div class="card-header bg-secondary text-white">
-                <i class="bi bi-truck me-2"></i>Import DMS Vehicles
-            </div>
-            <div class="card-body">
-                <p class="text-muted">Import vehicle master data from DMS. Phones sync to customers.</p>
-                <form action="{{ route('admin.dms-import.vehicles') }}" method="POST" enctype="multipart/form-data" class="import-form">
-                    @csrf
-                    <div class="mb-3">
-                        <input type="file" name="file" class="form-control" accept=".xls,.xlsx" required>
-                        <div class="form-text">Expected: Magic, Reg No, Model, Chassis, Customer Magic, Phone1-4</div>
+    <div class="card-body">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card h-100 border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <span class="badge bg-dark text-warning me-2">3</span>
+                        <i class="bi bi-exclamation-triangle me-2"></i>Import Uninvoiced Jobs
                     </div>
-                    <button type="submit" class="btn btn-secondary w-100">
-                        <i class="bi bi-upload me-1"></i>Import Vehicles
-                    </button>
-                </form>
+                    <div class="card-body">
+                        <p class="text-muted mb-2">Import uninvoiced job report from DMS (uiws.xls). Auto-links to customers.</p>
+                        <form action="{{ route('imports.uninvoiced') }}" method="POST" enctype="multipart/form-data" class="import-form">
+                            @csrf
+                            <div class="mb-3">
+                                <label class="form-label">Franchise <span class="text-danger">*</span></label>
+                                <select name="franchise" class="form-select" required>
+                                    <option value="PC">PC - Passenger Car</option>
+                                    <option value="CV">CV - Commercial Vehicle</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.ods,.csv" required>
+                            </div>
+                            <button type="submit" class="btn btn-warning w-100">
+                                <i class="bi bi-upload me-1"></i>Import Uninvoiced
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card h-100 border-success">
+                    <div class="card-header bg-success text-white">
+                        <span class="badge bg-white text-success me-2">4</span>
+                        <i class="bi bi-check-circle me-2"></i>Import Invoiced Jobs
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-2">Import invoiced job data (INV sheet). Marks jobs as invoiced, links to customers.</p>
+                        <form action="{{ route('imports.invoiced') }}" method="POST" enctype="multipart/form-data" class="import-form">
+                            @csrf
+                             <div class="mb-3">
+                                <label class="form-label">Franchise <span class="text-danger">*</span></label>
+                                <select name="franchise" class="form-select" required>
+                                    <option value="PC">PC - Passenger Car</option>
+                                    <option value="CV">CV - Commercial Vehicle</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.ods,.csv" required>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-upload me-1"></i>Import Invoiced
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
-@endif
 
-<div class="card mt-4">
+<!-- Step 5: Refresh -->
+<div class="card mb-4">
+    <div class="card-header bg-info text-white d-flex align-items-center justify-content-between">
+        <span>
+            <span class="badge bg-white text-info me-2 rounded-pill">Step 5</span>
+            <i class="bi bi-arrow-repeat me-2"></i>Refresh Customer Summaries
+        </span>
+        <small class="opacity-75">Run after all imports to update Customer Lookup</small>
+    </div>
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <p class="mb-1">After importing all data, run this command to rebuild the Customer Lookup table:</p>
+                <code class="user-select-all">docker exec -it control_tower_app php artisan customers:refresh-summaries</code>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{{ route('customers.index') }}" class="btn btn-outline-info">
+                    <i class="bi bi-people me-1"></i>Go to Customer Lookup
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Optional: Progress Import -->
+<div class="card mb-4">
+    <div class="card-header bg-light d-flex align-items-center justify-content-between" data-bs-toggle="collapse" data-bs-target="#progressImport" style="cursor: pointer;">
+        <span>
+            <i class="bi bi-clipboard-check me-2"></i>Import Progress Data
+            <span class="badge bg-secondary ms-2">Optional</span>
+        </span>
+        <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="collapse" id="progressImport">
+        <div class="card-body">
+            <p class="text-muted">Import job progress data from PROGRES JOB file. This will create new jobs or update existing ones.</p>
+            <form action="{{ route('imports.preview') }}" method="POST" enctype="multipart/form-data" class="import-form">
+                @csrf
+                <input type="hidden" name="import_type" value="progress">
+                <div class="row">
+                    <div class="col-md-8">
+                        <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.ods,.csv" required>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-grow-1">
+                                <i class="bi bi-eye me-1"></i>Preview
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="directImport(this.form, 'progress')" title="Skip preview">
+                                <i class="bi bi-lightning"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="card">
     <div class="card-header">
         <i class="bi bi-info-circle me-2"></i>Import Instructions
     </div>
@@ -236,8 +323,8 @@
             <li><strong>JADWAL TOWING STOORING:</strong> Imported to Towing Records table</li>
         </ul>
         
-        <div class="alert alert-info mb-0">
-            <i class="bi bi-lightbulb me-2"></i>The importer will try to match common Indonesian and DMS column names automatically.
+        <div class="alert alert-success mb-0">
+            <i class="bi bi-link-45deg me-2"></i><strong>Customer Linking:</strong> When you import job data, the system automatically links jobs to DMS customers using name matching. Import DMS Customers first for best results!
         </div>
     </div>
 </div>
