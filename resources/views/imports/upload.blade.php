@@ -264,29 +264,28 @@
 
 <!-- Optional: Progress Import -->
 <div class="card mb-4">
-    <div class="card-header bg-light d-flex align-items-center justify-content-between" data-bs-toggle="collapse" data-bs-target="#progressImport" style="cursor: pointer;">
+    <div class="card-header bg-light d-flex align-items-center justify-content-between">
         <span>
             <i class="bi bi-clipboard-check me-2"></i>Import Progress Data
-            <span class="badge bg-secondary ms-2">Optional</span>
+            <span class="badge bg-secondary ms-2">Alternative</span>
         </span>
-        <i class="bi bi-chevron-down"></i>
+        <small class="text-muted">For PROGRES JOB files (creates new jobs)</small>
     </div>
-    <div class="collapse" id="progressImport">
-        <div class="card-body">
-            <p class="text-muted">Import job progress data from PROGRES JOB file. This will create new jobs or update existing ones.</p>
-            <form action="{{ route('imports.preview') }}" method="POST" enctype="multipart/form-data" class="import-form">
-                @csrf
-                <input type="hidden" name="import_type" value="progress">
-                <div class="row">
-                    <div class="col-md-8">
-                        <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.ods,.csv" required>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary flex-grow-1">
-                                <i class="bi bi-eye me-1"></i>Preview
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary" onclick="directImport(this.form, 'progress')" title="Skip preview">
+    <div class="card-body">
+        <p class="text-muted mb-3">Import job progress data from PROGRES JOB file. This will create new jobs or update existing ones.</p>
+        <form action="{{ route('imports.preview') }}" method="POST" enctype="multipart/form-data" class="import-form">
+            @csrf
+            <input type="hidden" name="import_type" value="progress">
+            <div class="row">
+                <div class="col-md-8">
+                    <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.ods,.csv" required>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <i class="bi bi-eye me-1"></i>Preview
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="directImport(this.form, 'progress')" title="Skip preview">
                                 <i class="bi bi-lightning"></i>
                             </button>
                         </div>
@@ -294,7 +293,6 @@
                 </div>
             </form>
         </div>
-    </div>
 </div>
 
 <div class="card">
