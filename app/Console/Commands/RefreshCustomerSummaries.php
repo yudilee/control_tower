@@ -19,33 +19,39 @@ class RefreshCustomerSummaries extends Command
     {
         $this->info('Refreshing customer summaries...');
 
-        // Get all unique customer names
-        $names = DB::table(
+        // Get all unique customer names from jobs and vehicles
+        $namesFromActivity = DB::table(
             DB::raw("(
                 SELECT DISTINCT customer_name as name FROM vehicles WHERE customer_name IS NOT NULL AND customer_name != ''
                 UNION
                 SELECT DISTINCT customer_name as name FROM jobs WHERE customer_name IS NOT NULL AND customer_name != ''
             ) as customers")
-        )->pluck('name');
+        )->pluck('name')->toArray();
 
-        $this->info("Found {$names->count()} unique customers.");
+        // Get all customer names from DMS-imported customers table
+        $dmsCustomers = Customer::whereNotNull('name')
+            ->where('name', '!=', '')
+            ->get();
 
-        $bar = $this->output->createProgressBar($names->count());
-        $bar->start();
-
-        $batch = [];
-        $batchSize = 100;
+        $this->info("Found " . count($namesFromActivity) . " customers from jobs/vehicles.");
+        $this->info("Found " . $dmsCustomers->count() . " DMS-imported customers.");
 
         // Cache customer lookups for efficiency
-        $customersByName = Customer::whereNotNull('name')
-            ->get()
-            ->keyBy(fn($c) => strtoupper(trim($c->name)));
+        $customersByName = $dmsCustomers->keyBy(fn($c) => strtoupper(trim($c->name)));
         
         $aliasMap = CustomerAlias::with('customer')
             ->get()
             ->keyBy(fn($a) => strtoupper(trim($a->alias_name)));
 
-        foreach ($names as $name) {
+        // Process customers with job/vehicle activity
+        $processedNames = [];
+        $batch = [];
+        $batchSize = 100;
+        
+        $bar = $this->output->createProgressBar(count($namesFromActivity) + $dmsCustomers->count());
+        $bar->start();
+
+        foreach ($namesFromActivity as $name) {
             $vehicleCount = Vehicle::where('customer_name', $name)->count();
             $uninvoicedCount = Job::where('customer_name', $name)->where('status', 'uninvoiced')->count();
             $invoicedCount = Job::where('customer_name', $name)->where('status', 'invoiced')->count();
@@ -77,6 +83,47 @@ class RefreshCustomerSummaries extends Command
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
+            
+            $processedNames[strtoupper(trim($name))] = true;
+
+            if (count($batch) >= $batchSize) {
+                $this->upsertBatch($batch);
+                $batch = [];
+            }
+
+            $bar->advance();
+        }
+
+        // Now add DMS customers who don't have any job/vehicle activity yet
+        $dmsOnlyCount = 0;
+        foreach ($dmsCustomers as $customer) {
+            $normalizedName = strtoupper(trim($customer->name));
+            
+            // Skip if already processed
+            if (isset($processedNames[$normalizedName])) {
+                $bar->advance();
+                continue;
+            }
+            
+            $batch[] = [
+                'name' => $customer->name,
+                'customer_id' => $customer->id,
+                'dms_magic' => $customer->dms_magic,
+                'email' => $customer->email,
+                'phone' => $customer->phone ?? $customer->phone_1,
+                'company_name' => $customer->company_name,
+                'vehicle_count' => 0,
+                'job_count' => 0,
+                'uninvoiced_count' => 0,
+                'invoiced_count' => 0,
+                'total_sales' => 0,
+                'estimated_sales' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+            
+            $processedNames[$normalizedName] = true;
+            $dmsOnlyCount++;
 
             if (count($batch) >= $batchSize) {
                 $this->upsertBatch($batch);
@@ -94,8 +141,10 @@ class RefreshCustomerSummaries extends Command
         $bar->finish();
         $this->newLine();
         
+        $totalCount = CustomerSummary::count();
         $linkedCount = CustomerSummary::whereNotNull('customer_id')->count();
-        $this->info("Customer summaries refreshed! {$linkedCount} linked to DMS.");
+        $this->info("Customer summaries refreshed!");
+        $this->info("Total: {$totalCount} | DMS Linked: {$linkedCount} | DMS-only (no activity): {$dmsOnlyCount}");
 
         return Command::SUCCESS;
     }
@@ -110,4 +159,5 @@ class RefreshCustomerSummaries extends Command
         }
     }
 }
+
 
