@@ -45,7 +45,13 @@ class DmsImportService
                     $this->processCustomerRow($row, $headerMap);
                 } catch (\Exception $e) {
                     $this->errors++;
-                    $this->errorMessages[] = "Row " . ($rowIndex + 2) . ": " . $e->getMessage();
+                    $this->errorMessages[] = [
+                        'row' => $rowIndex + 2,
+                        'sheet' => 'CUSTOMERS',
+                        'job_number' => 'N/A',
+                        'plate_number' => $this->getValue($row, $headerMap, 'magic cust') ?? 'N/A',
+                        'error' => $e->getMessage()
+                    ];
                     Log::warning("DMS Customer Import Row Error", [
                         'row' => $rowIndex + 2,
                         'error' => $e->getMessage()
@@ -91,9 +97,16 @@ class DmsImportService
                     $this->processVehicleRow($row, $headerMap);
                 } catch (\Exception $e) {
                     $this->errors++;
-                    $this->errorMessages[] = "Row " . ($rowIndex + 2) . ": " . $e->getMessage();
+                    $this->errorMessages[] = [
+                        'row' => $rowIndex + 2,
+                        'sheet' => 'VEHICLES',
+                        'job_number' => $this->getValue($row, $headerMap, 'magic') ?? 'N/A',
+                        'plate_number' => $this->getValue($row, $headerMap, 'registration no') ?? 'N/A',
+                        'error' => $e->getMessage()
+                    ];
                     Log::warning("DMS Vehicle Import Row Error", [
                         'row' => $rowIndex + 2,
+                        'plate_number' => $this->getValue($row, $headerMap, 'registration no'),
                         'error' => $e->getMessage()
                     ]);
                 }
