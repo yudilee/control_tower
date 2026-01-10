@@ -63,11 +63,14 @@ class ImageService
     }
     
     /**
-     * Check if GD library is available
+     * Check if GD library is available with required functions
      */
     protected function canUseGD(): bool
     {
-        return extension_loaded('gd');
+        return extension_loaded('gd') 
+            && function_exists('imagejpeg') 
+            && function_exists('imagecreatetruecolor')
+            && function_exists('imagecopyresampled');
     }
     
     /**
