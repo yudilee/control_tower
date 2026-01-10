@@ -17,6 +17,7 @@ class UserController extends Controller
         'sa' => 'Service Advisor',
         'foreman' => 'Foreman',
         'sparepart' => 'Sparepart',
+        'finance' => 'Finance',
         'control_tower' => 'Control Tower',
         'audit' => 'Audit',
         'manager' => 'Workshop Manager',
