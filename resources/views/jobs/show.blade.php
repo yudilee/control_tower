@@ -585,6 +585,11 @@
                                                 <span class="badge bg-{{ $reply->user->role == 'admin' ? 'danger' : ($reply->user->role == 'manager' ? 'primary' : ($reply->user->role == 'control_tower' ? 'info' : ($reply->user->role == 'sparepart' ? 'warning' : 'secondary'))) }} badge-sm" style="font-size: 0.65rem;">{{ $reply->user->getRoleDisplayName() }}</span>
                                                 @endif
                                                 <span class="comment-time" style="font-size: 0.75rem;">{{ $reply->time_ago }}</span>
+                                                @if($canComment)
+                                                <button type="button" class="btn btn-link btn-sm p-0 ms-auto reply-btn" data-comment-id="{{ $reply->id }}" data-author="{{ $reply->commenter_name }}">
+                                                    <i class="bi bi-reply"></i> Reply
+                                                </button>
+                                                @endif
                                             </div>
                                             <div class="comment-text" style="font-size: 0.9rem;">{!! $reply->formatted_text !!}</div>
                                             @if($reply->hasImages())
@@ -1153,7 +1158,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     ctx.drawImage(img, 0, 0, width, height);
                     
                     canvas.toBlob((blob) => {
-                        resolve(new File([blob], file.name, {
+                        // Force .jpg extension
+                        const fileName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+                        resolve(new File([blob], fileName, {
                             type: 'image/jpeg',
                             lastModified: Date.now()
                         }));

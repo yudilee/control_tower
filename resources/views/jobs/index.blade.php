@@ -833,7 +833,9 @@ async function compressImage(file) {
                 ctx.drawImage(img, 0, 0, width, height);
                 
                 canvas.toBlob((blob) => {
-                    resolve(new File([blob], file.name, {
+                    // Force .jpg extension
+                    const fileName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+                    resolve(new File([blob], fileName, {
                         type: 'image/jpeg',
                         lastModified: Date.now()
                     }));
