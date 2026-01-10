@@ -90,6 +90,23 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the notifications for the user.
+     * Overrides Notifiable trait to use standard hasMany instead of morphMany
+     */
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(Notification::class)->latest();
+    }
+
+    /**
+     * Get the entity's unread notifications.
+     */
+    public function unreadNotifications(): HasMany
+    {
+        return $this->notifications()->unread();
+    }
+
+    /**
      * Get push subscriptions for this user
      */
     public function pushSubscriptions(): HasMany
