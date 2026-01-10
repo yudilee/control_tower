@@ -419,7 +419,7 @@ class JobController extends Controller
         try {
             // Notify @mentions
             foreach ($mentionedUserIds as $mentionedUserId) {
-                if ($mentionedUserId != $user?->id) {
+                // if ($mentionedUserId != $user?->id) { // Self-notification allowed for testing
                     Notification::notify(
                         $mentionedUserId,
                         Notification::TYPE_MENTION,
@@ -429,13 +429,14 @@ class JobController extends Controller
                         'at',
                         'primary'
                     );
-                }
+                // }
             }
             
             // Notify reply parent author
             if ($remark->parent_id) {
                 $parentRemark = Remark::find($remark->parent_id);
-                if ($parentRemark && $parentRemark->user_id && $parentRemark->user_id != $user?->id) {
+                // Allow self-notification for reply testing
+                if ($parentRemark && $parentRemark->user_id /* && $parentRemark->user_id != $user?->id */) {
                     Notification::notify(
                         $parentRemark->user_id,
                         Notification::TYPE_REPLY,
