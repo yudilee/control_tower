@@ -475,7 +475,7 @@ class ReportController extends Controller
             
             // Calculate turnaround (avg days from job_date to invoiced_at)
             $avgTurnaround = $invoiced->filter(fn($j) => $j->job_date && $j->invoiced_at)
-                ->avg(fn($j) => $j->invoiced_at->diffInDays($j->job_date));
+                ->avg(fn($j) => abs($j->job_date->diffInDays($j->invoiced_at)));
             
             return [
                 'name' => $saName ?: 'Unassigned',
