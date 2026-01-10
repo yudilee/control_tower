@@ -114,6 +114,7 @@ Route::middleware('auth')->group(function () {
     // Add Remarks - SA, Foreman, Sparepart, Control Tower, Manager, Admin
     Route::middleware('role:sa,foreman,sparepart,control_tower,manager,admin')->group(function () {
         Route::post('jobs/{job}/remark', [JobController::class, 'addRemark'])->name('jobs.add-remark');
+        Route::delete('remarks/{remark}', [JobController::class, 'deleteRemark'])->name('remarks.destroy');
         Route::post('jobs/bulk-update', [JobController::class, 'bulkUpdate'])->name('jobs.bulk-update');
         Route::get('api/users/search', [JobController::class, 'searchUsers'])->name('api.users.search');
     });

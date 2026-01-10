@@ -13,6 +13,7 @@ use App\Models\Vehicle;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 /**
@@ -496,6 +497,38 @@ class JobController extends Controller
 
         return redirect()->route('jobs.show', $job)
             ->with('success', 'Comment added successfully.');
+    }
+
+    public function deleteRemark(Remark $remark): RedirectResponse|JsonResponse
+    {
+        // Authorization: Admin, Manager, or Record Owner
+        if (auth()->id() !== $remark->user_id && !auth()->user()->hasAnyRole(['admin', 'manager'])) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Delete images from storage
+        if ($remark->images) {
+            foreach ($remark->images as $path) {
+                // Remove 'public/' prefix if exists in path to avoid double prefixing if Storage::delete expects relative to disk root
+                // But Laravel Storage::delete('public/foo') works if default disk is local and root is storage/app
+                // Let's assume path is like "remarks/1/file.jpg"
+                if (Storage::exists("public/{$path}")) {
+                    Storage::delete("public/{$path}");
+                }
+            }
+        }
+
+        // Delete the remark
+        $remark->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'Comment deleted.');
     }
 
     /**

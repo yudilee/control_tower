@@ -558,6 +558,15 @@
                                         <i class="bi bi-reply"></i> Reply
                                     </button>
                                     @endif
+                                    @if(auth()->id() == $remark->user_id || auth()->user()->hasAnyRole(['admin', 'manager']))
+                                    <form action="{{ route('remarks.destroy', $remark) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this comment?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-link btn-sm p-0 ms-2 text-danger" title="Delete comment">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    @endif
                                 </div>
                                 <div class="comment-text">{!! $remark->formatted_text !!}</div>
                                 @if($remark->hasImages())
@@ -589,6 +598,15 @@
                                                 <button type="button" class="btn btn-link btn-sm p-0 ms-auto reply-btn" data-comment-id="{{ $reply->id }}" data-author="{{ $reply->commenter_name }}">
                                                     <i class="bi bi-reply"></i> Reply
                                                 </button>
+                                                @endif
+                                                @if(auth()->id() == $reply->user_id || auth()->user()->hasAnyRole(['admin', 'manager']))
+                                                <form action="{{ route('remarks.destroy', $reply) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this comment?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-link btn-sm p-0 ms-2 text-danger" title="Delete comment">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
                                                 @endif
                                             </div>
                                             <div class="comment-text" style="font-size: 0.9rem;">{!! $reply->formatted_text !!}</div>
