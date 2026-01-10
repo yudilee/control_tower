@@ -210,18 +210,56 @@ class PartOrderController extends Controller
     /**
      * Update status via AJAX (for Kanban drag-drop)
      */
+    /**
+     * Update status via AJAX (for Kanban drag-drop)
+     * Handles status changes, extra fields, and Work Status automation
+     */
     public function updateStatus(Request $request, PartOrder $partOrder): JsonResponse
     {
         $validated = $request->validate([
             'status' => 'required|string|in:' . implode(',', array_keys(PartOrder::getStatuses())),
+            'part_name' => 'nullable|string|max:255',
+            'quantity' => 'nullable|integer|min:1',
+            'rq' => 'nullable|string|max:50',
+            'part_number' => 'nullable|string|max:100',
+            'order_date' => 'nullable|date',
+            'expected_date' => 'nullable|date',
+            'notes' => 'nullable|string|max:1000',
+            'remark' => 'nullable|string', // Additional remark for job
         ]);
 
         $oldStatus = $partOrder->status;
+        
+        // Update PartOrder fields if provided (filter out status/remark to handle separately)
+        $fillable = array_filter($validated, fn($key) => !in_array($key, ['status', 'remark']), ARRAY_FILTER_USE_KEY);
+        if (!empty($fillable)) {
+            $partOrder->update($fillable);
+        }
+
+        // Update Status
         $partOrder->update([
             'status' => $validated['status'],
             'updated_by' => auth()->id(),
             'received_date' => $validated['status'] === PartOrder::STATUS_RECEIVED ? now()->toDateString() : $partOrder->received_date,
         ]);
+
+        // Job Work Status Logic
+        if ($validated['status'] === PartOrder::STATUS_ORDERED) {
+             // 5. Buka RQ (Step index 4)
+             $partOrder->job->update(['work_status' => Job::WORK_STATUSES[4] ?? '5. Buka RQ (Qrder Parts)']);
+        } elseif ($validated['status'] === PartOrder::STATUS_RECEIVED) {
+             // 6. Parts Datang (Step index 5)
+             $partOrder->job->update(['work_status' => Job::WORK_STATUSES[5] ?? '6. Parts Datang (Parts Received)']);
+        }
+        
+        // Add Remark if present
+        if (!empty($validated['remark'])) {
+             $partOrder->job->addRemark(
+                 "Part Status Update ({$partOrder->part_name} -> {$validated['status']}): " . $validated['remark'],
+                 auth()->user()->name,
+                 auth()->id()
+             );
+        }
 
         return response()->json([
             'success' => true,

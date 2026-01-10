@@ -137,6 +137,98 @@
             @endforeach
         </div>
     </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Order Details Modal (For status 'ordered') -->
+    <div class="modal fade" id="orderDetailModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Order Details (Buka RQ)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="orderDetailForm">
+                        <input type="hidden" name="order_id" id="od_order_id">
+                        <input type="hidden" name="status" value="ordered">
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Part Name</label>
+                                <input type="text" class="form-control" name="part_name" id="od_part_name" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Qty</label>
+                                <input type="number" class="form-control" name="quantity" id="od_quantity" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">RQ (Requisition)</label>
+                                <input type="text" class="form-control" name="rq" id="od_rq" placeholder="Enter RQ Number">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Part Number</label>
+                                <input type="text" class="form-control" name="part_number" id="od_part_number" placeholder="Enter Part No">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">No. Order Part</label>
+                                <input type="text" class="form-control" name="no_order_part" id="od_no_order_part" placeholder="Enter Order No">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Order Date</label>
+                                <input type="date" class="form-control" name="order_date" id="od_order_date" value="{{ date('Y-m-d') }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Expected Date</label>
+                                <input type="date" class="form-control" name="expected_date" id="od_expected_date" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Notes</label>
+                                <textarea class="form-control" name="notes" id="od_notes" rows="2"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Remark (for Job Activity)</label>
+                                <textarea class="form-control" name="remark" rows="2" placeholder="Add a remark about this status change..."></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveOrderDetails">Confirm & Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remark Modal (For other statuses) -->
+    <div class="modal fade" id="remarkModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Status Change</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="remarkForm">
+                        <input type="hidden" name="order_id" id="rm_order_id">
+                        <input type="hidden" name="status" id="rm_status">
+                        
+                        <p>Are you sure you want to change status to <strong id="rm_status_display"></strong>?</p>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Remark (Optional)</label>
+                            <textarea class="form-control" name="remark" rows="3" placeholder="Add a remark about this status change..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveRemark">Confirm & Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @push('styles')
@@ -173,6 +265,12 @@
 document.addEventListener('DOMContentLoaded', function() {
     const cards = document.querySelectorAll('.kanban-card');
     const columns = document.querySelectorAll('.kanban-column');
+    let draggedCard = null;
+    let originalParent = null;
+
+    // Modals
+    const orderDetailModal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
+    const remarkModal = new bootstrap.Modal(document.getElementById('remarkModal'));
 
     cards.forEach(card => {
         card.addEventListener('dragstart', handleDragStart);
@@ -186,10 +284,9 @@ document.addEventListener('DOMContentLoaded', function() {
         column.addEventListener('drop', handleDrop);
     });
 
-    let draggedCard = null;
-
     function handleDragStart(e) {
         draggedCard = this;
+        originalParent = this.parentNode;
         this.classList.add('dragging');
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', this.dataset.orderId);
@@ -200,18 +297,9 @@ document.addEventListener('DOMContentLoaded', function() {
         columns.forEach(col => col.classList.remove('drag-over'));
     }
 
-    function handleDragOver(e) {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-    }
-
-    function handleDragEnter(e) {
-        this.classList.add('drag-over');
-    }
-
-    function handleDragLeave(e) {
-        this.classList.remove('drag-over');
-    }
+    function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+    function handleDragEnter(e) { this.classList.add('drag-over'); }
+    function handleDragLeave(e) { this.classList.remove('drag-over'); }
 
     function handleDrop(e) {
         e.preventDefault();
@@ -220,32 +308,102 @@ document.addEventListener('DOMContentLoaded', function() {
         const orderId = e.dataTransfer.getData('text/plain');
         const newStatus = this.dataset.status;
         
-        if (draggedCard) {
-            // Optimistic UI update
-            this.appendChild(draggedCard);
-            
-            // Send AJAX request
-            fetch(`/part-orders/${orderId}/status`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ status: newStatus })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    // Revert on error
-                    location.reload();
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                location.reload();
-            });
+        // Prevent drop in same column
+        if (originalParent === this) return;
+
+        // Logic based on status
+        if (newStatus === 'ordered') {
+            // Show Order Details Modal
+            showOrderModal(orderId, draggedCard);
+        } else {
+            // Show Remark Modal for others
+            showRemarkModal(orderId, newStatus, draggedCard);
         }
+    }
+
+    function showOrderModal(orderId, cardElement) {
+        document.getElementById('od_order_id').value = orderId;
+        
+        // Pre-fill fields from card data attributes if available, or text content
+        const partName = cardElement.querySelector('h6').textContent;
+        document.getElementById('od_part_name').value = partName;
+        
+        // Reset other fields
+        document.getElementById('od_quantity').value = ''; 
+        
+        orderDetailModal.show();
+        
+        // Clear ID on hidden to detect if cancelled
+        const modalEl = document.getElementById('orderDetailModal');
+        const onHide = function() {
+            if (!document.getElementById('od_order_id').value) { 
+                // Currently do nothing on cancel, card remains in original spot visually because we prevented appendChild
+            }
+            modalEl.removeEventListener('hidden.bs.modal', onHide);
+        };
+        modalEl.addEventListener('hidden.bs.modal', onHide);
+    }
+
+    function showRemarkModal(orderId, status, cardElement) {
+        document.getElementById('rm_order_id').value = orderId;
+        document.getElementById('rm_status').value = status;
+        document.getElementById('rm_status_display').textContent = status.charAt(0).toUpperCase() + status.slice(1);
+        remarkModal.show();
+    }
+
+    // Handle Order Submit
+    document.getElementById('saveOrderDetails').addEventListener('click', function() {
+        const form = document.getElementById('orderDetailForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        const orderId = data.order_id;
+        
+        submitStatusUpdate(orderId, data, orderDetailModal);
+    });
+
+    // Handle Remark Submit
+    document.getElementById('saveRemark').addEventListener('click', function() {
+        const form = document.getElementById('remarkForm');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        const orderId = data.order_id;
+        
+        submitStatusUpdate(orderId, data, remarkModal);
+    });
+
+    function submitStatusUpdate(orderId, data, modalInstance) {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        
+        fetch(`/part-orders/${orderId}/status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(res => {
+            if (res.success) {
+                // Clear ID to signal success (before hiding)
+                if(modalInstance === orderDetailModal) document.getElementById('od_order_id').value = '';
+                
+                modalInstance.hide();
+                location.reload(); 
+            } else {
+                alert('Update failed: ' + (res.message || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Error updating status');
+        });
     }
 });
 </script>

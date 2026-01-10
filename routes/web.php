@@ -316,6 +316,13 @@ Route::middleware('auth')->group(function () {
         Route::delete('foremen/{foreman}', [\App\Http\Controllers\ForemanController::class, 'destroy'])->name('foremen.destroy');
     });
 
+
+    // Finance Kanban (Steps 10-13) - Finance, Control Tower, Manager, Admin
+    Route::middleware('role:finance,control_tower,manager,admin')->group(function () {
+        Route::get('finance/kanban', [\App\Http\Controllers\FinanceController::class, 'kanban'])->name('finance.kanban');
+        Route::post('finance/jobs/{job}/status', [\App\Http\Controllers\FinanceController::class, 'updateStatus'])->name('finance.update-status');
+    });
+
     // Audit - Admin and Audit role
     Route::middleware('role:audit,admin')->group(function () {
         Route::get('audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('audit-logs.index');

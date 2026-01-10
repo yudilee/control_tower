@@ -180,6 +180,23 @@ class Job extends Model
         ];
     }
 
+    // Work Statuses (13 Steps)
+    const WORK_STATUSES = [
+        '1. Belum diproses (Tunggu Antrian)',
+        '2. Pengerjaan Diagnosa Awal',
+        '3. Estimasi (Proses Warranty -> Tips case, Eskulab, Xsp)',
+        '4. Acc Customer/Warranty',
+        '5. Buka RQ (Qrder Parts)',
+        '6. Parts Datang (Parts Received)',
+        '7. Penjadwalan (Unit dibawa customer)',
+        '8. Pengerjaan',
+        '9. Pemberkasan (Body Paint/Cash/Warranty)',
+        '10. Proses Close Job (Pengerjaan selesai)',
+        '11. Proses Invoice',
+        '12. Menunggu Pembayaran',
+        '13. Sudah Dibayar',
+    ];
+
     /**
      * Boot the model and register events.
      */
