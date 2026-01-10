@@ -392,11 +392,16 @@ class JobController extends Controller
         ]);
         
         // Update job's latest_remark (for top-level comments only)
+        // Wrapped to prevent broadcast failures from breaking response
         if (!$remark->parent_id) {
-            $job->update([
-                'latest_remark' => $validated['remark_text'],
-                'latest_remark_at' => now(),
-            ]);
+            try {
+                $job->update([
+                    'latest_remark' => $validated['remark_text'],
+                    'latest_remark_at' => now(),
+                ]);
+            } catch (\Exception $e) {
+                \Log::debug("Job update broadcast failed: " . $e->getMessage());
+            }
         }
         
         // Send notifications (all wrapped to prevent broadcast failures from breaking response)
