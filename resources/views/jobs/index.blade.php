@@ -704,6 +704,95 @@ document.getElementById('addRemarkModal').addEventListener('hidden.bs.modal', fu
     document.getElementById('remarkText').value = '';
     if (modalImageInput) modalImageInput.value = '';
     if (modalPreviewContainer) modalPreviewContainer.innerHTML = '';
+    // Close mention dropdown if open
+    const dropdown = document.querySelector('.modal-mention-dropdown');
+    if (dropdown) dropdown.remove();
+});
+
+// @Mention autocomplete for popup
+const modalTextarea = document.getElementById('remarkText');
+let modalMentionDropdown = null;
+let modalMentionTimeout = null;
+
+if (modalTextarea) {
+    modalTextarea.addEventListener('input', function(e) {
+        const cursorPos = this.selectionStart;
+        const textBeforeCursor = this.value.substring(0, cursorPos);
+        const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+        
+        if (mentionMatch) {
+            const query = mentionMatch[1];
+            clearTimeout(modalMentionTimeout);
+            modalMentionTimeout = setTimeout(() => searchModalMentions(query, cursorPos - mentionMatch[0].length), 200);
+        } else {
+            closeModalMentionDropdown();
+        }
+    });
+}
+
+async function searchModalMentions(query, startPos) {
+    if (query.length < 1) {
+        closeModalMentionDropdown();
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
+        const users = await response.json();
+        
+        if (users.length > 0) {
+            showModalMentionDropdown(users, startPos);
+        } else {
+            closeModalMentionDropdown();
+        }
+    } catch (err) {
+        console.error('Mention search error:', err);
+    }
+}
+
+function showModalMentionDropdown(users, startPos) {
+    closeModalMentionDropdown();
+    
+    modalMentionDropdown = document.createElement('div');
+    modalMentionDropdown.className = 'modal-mention-dropdown shadow rounded bg-white border';
+    modalMentionDropdown.style.cssText = 'position: absolute; z-index: 1060; max-height: 200px; overflow-y: auto; min-width: 200px;';
+    
+    users.forEach(user => {
+        const item = document.createElement('div');
+        item.className = 'mention-item px-3 py-2';
+        item.style.cursor = 'pointer';
+        item.innerHTML = `<strong>@${user.name}</strong> <small class="text-muted">${user.role}</small>`;
+        item.addEventListener('click', () => insertModalMention(user.name, startPos));
+        item.addEventListener('mouseenter', () => item.classList.add('bg-light'));
+        item.addEventListener('mouseleave', () => item.classList.remove('bg-light'));
+        modalMentionDropdown.appendChild(item);
+    });
+    
+    modalTextarea.parentElement.style.position = 'relative';
+    modalTextarea.parentElement.appendChild(modalMentionDropdown);
+}
+
+function closeModalMentionDropdown() {
+    if (modalMentionDropdown) {
+        modalMentionDropdown.remove();
+        modalMentionDropdown = null;
+    }
+}
+
+function insertModalMention(name, startPos) {
+    const beforeMention = modalTextarea.value.substring(0, startPos);
+    const afterMention = modalTextarea.value.substring(modalTextarea.selectionStart);
+    const mentionText = name.includes(' ') ? `@"${name}" ` : `@${name} `;
+    modalTextarea.value = beforeMention + mentionText + afterMention;
+    modalTextarea.focus();
+    closeModalMentionDropdown();
+}
+
+// Close dropdown on click outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.modal-mention-dropdown') && e.target !== modalTextarea) {
+        closeModalMentionDropdown();
+    }
 });
 </script>
 

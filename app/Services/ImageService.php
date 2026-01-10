@@ -94,71 +94,80 @@ class ImageService
      */
     protected function processWithGD(UploadedFile $file, string $storagePath, string $filename): string
     {
-        $sourcePath = $file->getRealPath();
-        $destPath = storage_path("app/{$storagePath}/{$filename}");
-        
-        // Get image info
-        $imageInfo = getimagesize($sourcePath);
-        if (!$imageInfo) {
-            return $this->storeOriginal($file, $storagePath, $filename);
-        }
-        
-        $width = $imageInfo[0];
-        $height = $imageInfo[1];
-        $type = $imageInfo[2];
-        
-        // Create source image based on type
-        switch ($type) {
-            case IMAGETYPE_JPEG:
-                $source = imagecreatefromjpeg($sourcePath);
-                break;
-            case IMAGETYPE_PNG:
-                $source = imagecreatefrompng($sourcePath);
-                break;
-            case IMAGETYPE_GIF:
-                $source = imagecreatefromgif($sourcePath);
-                break;
-            case IMAGETYPE_WEBP:
-                $source = imagecreatefromwebp($sourcePath);
-                break;
-            default:
+        try {
+            $sourcePath = $file->getRealPath();
+            $destPath = storage_path("app/{$storagePath}/{$filename}");
+            
+            // Get image info
+            $imageInfo = \getimagesize($sourcePath);
+            if (!$imageInfo) {
                 return $this->storeOriginal($file, $storagePath, $filename);
-        }
-        
-        if (!$source) {
+            }
+            
+            $width = $imageInfo[0];
+            $height = $imageInfo[1];
+            $type = $imageInfo[2];
+            
+            // Create source image based on type
+            switch ($type) {
+                case IMAGETYPE_JPEG:
+                    $source = \imagecreatefromjpeg($sourcePath);
+                    break;
+                case IMAGETYPE_PNG:
+                    $source = \imagecreatefrompng($sourcePath);
+                    break;
+                case IMAGETYPE_GIF:
+                    $source = \imagecreatefromgif($sourcePath);
+                    break;
+                case IMAGETYPE_WEBP:
+                    if (\function_exists('imagecreatefromwebp')) {
+                        $source = \imagecreatefromwebp($sourcePath);
+                    } else {
+                        return $this->storeOriginal($file, $storagePath, $filename);
+                    }
+                    break;
+                default:
+                    return $this->storeOriginal($file, $storagePath, $filename);
+            }
+            
+            if (!$source) {
+                return $this->storeOriginal($file, $storagePath, $filename);
+            }
+            
+            // Calculate new dimensions
+            $newWidth = $width;
+            $newHeight = $height;
+            
+            if ($width > $this->maxWidth || $height > $this->maxHeight) {
+                $ratio = min($this->maxWidth / $width, $this->maxHeight / $height);
+                $newWidth = (int) ($width * $ratio);
+                $newHeight = (int) ($height * $ratio);
+            }
+            
+            // Create new image
+            $destination = \imagecreatetruecolor($newWidth, $newHeight);
+            
+            // Preserve transparency for PNG
+            if ($type === IMAGETYPE_PNG) {
+                \imagealphablending($destination, false);
+                \imagesavealpha($destination, true);
+            }
+            
+            // Resize
+            \imagecopyresampled($destination, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+            
+            // Save as JPEG with quality
+            \imagejpeg($destination, $destPath, $this->quality);
+            
+            // Free memory
+            \imagedestroy($source);
+            \imagedestroy($destination);
+            
+            return str_replace('public/', '', "{$storagePath}/{$filename}");
+        } catch (\Exception $e) {
+            \Log::warning("GD processing failed: " . $e->getMessage());
             return $this->storeOriginal($file, $storagePath, $filename);
         }
-        
-        // Calculate new dimensions
-        $newWidth = $width;
-        $newHeight = $height;
-        
-        if ($width > $this->maxWidth || $height > $this->maxHeight) {
-            $ratio = min($this->maxWidth / $width, $this->maxHeight / $height);
-            $newWidth = (int) ($width * $ratio);
-            $newHeight = (int) ($height * $ratio);
-        }
-        
-        // Create new image
-        $destination = imagecreatetruecolor($newWidth, $newHeight);
-        
-        // Preserve transparency for PNG
-        if ($type === IMAGETYPE_PNG) {
-            imagealphablending($destination, false);
-            imagesavealpha($destination, true);
-        }
-        
-        // Resize
-        imagecopyresampled($destination, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-        
-        // Save as JPEG with quality
-        imagejpeg($destination, $destPath, $this->quality);
-        
-        // Free memory
-        imagedestroy($source);
-        imagedestroy($destination);
-        
-        return str_replace('public/', '', "{$storagePath}/{$filename}");
     }
     
     /**
