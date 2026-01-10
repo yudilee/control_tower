@@ -358,7 +358,7 @@ class Job extends Model
         // Notify assigned SA/Foreman about new remark (if different from creator)
         // Wrapped to prevent notification failures from bubbling up
         try {
-            $this->notifyAssignedUsers($remarkText, $createdBy, $userId);
+            $this->notifyAssignedUsersPublic($remarkText, $createdBy, $userId);
         } catch (\Exception $e) {
             \Log::debug("Notification failed for job {$this->job_number}: " . $e->getMessage());
         }
@@ -376,7 +376,7 @@ class Job extends Model
     /**
      * Notify SA and Foreman about activity on their job
      */
-    protected function notifyAssignedUsers(string $remarkText, ?string $createdBy, ?int $creatorUserId): void
+    public function notifyAssignedUsersPublic(string $remarkText, ?string $createdBy, ?int $creatorUserId): void
     {
         $usersToNotify = [];
         

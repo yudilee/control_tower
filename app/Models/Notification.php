@@ -32,6 +32,8 @@ class Notification extends Model
     const TYPE_PARTS_ARRIVED = 'parts_arrived';
     const TYPE_REMARK_ADDED = 'remark_added';
     const TYPE_JOB_ASSIGNED = 'job_assigned';
+    const TYPE_MENTION = 'mention';
+    const TYPE_REPLY = 'reply';
     const TYPE_SYSTEM = 'system';
 
     public function user(): BelongsTo
@@ -80,6 +82,8 @@ class Notification extends Model
             self::TYPE_PARTS_ARRIVED => 'box-seam-fill',
             self::TYPE_REMARK_ADDED => 'chat-text-fill',
             self::TYPE_JOB_ASSIGNED => 'person-plus-fill',
+            self::TYPE_MENTION => 'at',
+            self::TYPE_REPLY => 'reply-fill',
             self::TYPE_SYSTEM => 'info-circle-fill',
         ];
 

@@ -514,26 +514,63 @@
                 <div class="card-body p-0">
                     <!-- Comment List -->
                     <div class="comment-container" id="commentContainer">
-                        @forelse($job->remarks as $remark)
-                        <div class="comment-item {{ auth()->id() == $remark->user_id ? 'comment-own' : '' }}">
+                        @forelse($job->remarks->where('parent_id', null) as $remark)
+                        <div class="comment-item {{ auth()->id() == $remark->user_id ? 'comment-own' : '' }}" id="comment-{{ $remark->id }}">
                             <div class="comment-avatar" style="background-color: {{ sprintf('#%06X', crc32($remark->commenter_name) & 0xFFFFFF) }}">
                                 {{ $remark->commenter_initials }}
                             </div>
-                            <div class="comment-content">
-                                <div class="comment-meta">
+                            <div class="comment-content flex-grow-1">
+                                <div class="comment-meta d-flex align-items-center gap-2">
                                     <span class="comment-author">{{ $remark->commenter_name }}</span>
                                     @if($remark->user)
                                     <span class="badge bg-{{ $remark->user->role == 'admin' ? 'danger' : ($remark->user->role == 'manager' ? 'primary' : ($remark->user->role == 'control_tower' ? 'info' : ($remark->user->role == 'sparepart' ? 'warning' : 'secondary'))) }} badge-sm">{{ $remark->user->getRoleDisplayName() }}</span>
                                     @endif
                                     <span class="comment-time">{{ $remark->time_ago }}</span>
+                                    @if($canComment)
+                                    <button type="button" class="btn btn-link btn-sm p-0 ms-auto reply-btn" data-comment-id="{{ $remark->id }}" data-author="{{ $remark->commenter_name }}">
+                                        <i class="bi bi-reply"></i> Reply
+                                    </button>
+                                    @endif
                                 </div>
-                                <div class="comment-text">{{ $remark->remark_text }}</div>
+                                <div class="comment-text">{!! $remark->formatted_text !!}</div>
                                 @if($remark->hasImages())
                                 <div class="comment-images mt-2 d-flex flex-wrap gap-2">
                                     @foreach($remark->image_urls as $imageUrl)
                                     <a href="{{ $imageUrl }}" target="_blank" class="comment-image-thumb" data-bs-toggle="tooltip" title="Click to view full size">
                                         <img src="{{ $imageUrl }}" alt="Comment image" class="rounded" style="max-height: 80px; max-width: 120px; object-fit: cover; cursor: pointer; border: 1px solid #dee2e6;">
                                     </a>
+                                    @endforeach
+                                </div>
+                                @endif
+
+                                {{-- Replies --}}
+                                @if($remark->replies->count() > 0)
+                                <div class="replies-container mt-2 ms-3 ps-3 border-start border-2">
+                                    @foreach($remark->replies as $reply)
+                                    <div class="comment-item reply-item py-2 {{ auth()->id() == $reply->user_id ? 'comment-own' : '' }}" id="comment-{{ $reply->id }}">
+                                        <div class="comment-avatar comment-avatar-sm" style="background-color: {{ sprintf('#%06X', crc32($reply->commenter_name) & 0xFFFFFF) }}">
+                                            {{ $reply->commenter_initials }}
+                                        </div>
+                                        <div class="comment-content flex-grow-1">
+                                            <div class="comment-meta d-flex align-items-center gap-2">
+                                                <span class="comment-author">{{ $reply->commenter_name }}</span>
+                                                @if($reply->user)
+                                                <span class="badge bg-{{ $reply->user->role == 'admin' ? 'danger' : ($reply->user->role == 'manager' ? 'primary' : ($reply->user->role == 'control_tower' ? 'info' : ($reply->user->role == 'sparepart' ? 'warning' : 'secondary'))) }} badge-sm" style="font-size: 0.65rem;">{{ $reply->user->getRoleDisplayName() }}</span>
+                                                @endif
+                                                <span class="comment-time" style="font-size: 0.75rem;">{{ $reply->time_ago }}</span>
+                                            </div>
+                                            <div class="comment-text" style="font-size: 0.9rem;">{!! $reply->formatted_text !!}</div>
+                                            @if($reply->hasImages())
+                                            <div class="comment-images mt-1 d-flex flex-wrap gap-1">
+                                                @foreach($reply->image_urls as $imageUrl)
+                                                <a href="{{ $imageUrl }}" target="_blank">
+                                                    <img src="{{ $imageUrl }}" alt="Reply image" class="rounded" style="max-height: 60px; max-width: 80px; object-fit: cover;">
+                                                </a>
+                                                @endforeach
+                                            </div>
+                                            @endif
+                                        </div>
+                                    </div>
                                     @endforeach
                                 </div>
                                 @endif
@@ -915,8 +952,159 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.innerHTML = '<i class="bi bi-send"></i>';
         }
     });
+    });
+    
+    // Reply button handler
+    let replyToId = null;
+    document.querySelectorAll('.reply-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            replyToId = this.dataset.commentId;
+            const authorName = this.dataset.author;
+            textarea.value = `@${authorName} `;
+            textarea.focus();
+            textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Show reply indicator
+            const indicator = document.getElementById('replyIndicator');
+            if (!indicator) {
+                const ind = document.createElement('div');
+                ind.id = 'replyIndicator';
+                ind.className = 'alert alert-info py-1 px-2 mb-2 d-flex align-items-center';
+                ind.innerHTML = `<small><i class="bi bi-reply me-1"></i>Replying to <strong>${authorName}</strong></small>
+                    <button type="button" class="btn-close btn-close-sm ms-auto" onclick="cancelReply()"></button>`;
+                textarea.parentElement.insertBefore(ind, textarea);
+            }
+        });
+    });
+    
+    // Cancel reply
+    window.cancelReply = function() {
+        replyToId = null;
+        const indicator = document.getElementById('replyIndicator');
+        if (indicator) indicator.remove();
+    };
+    
+    // Update form submit to include parent_id
+    const originalSubmit = form.onsubmit;
+    form.addEventListener('submit', function(e) {
+        if (replyToId) {
+            // Add hidden input for parent_id
+            let parentInput = form.querySelector('input[name="parent_id"]');
+            if (!parentInput) {
+                parentInput = document.createElement('input');
+                parentInput.type = 'hidden';
+                parentInput.name = 'parent_id';
+                form.appendChild(parentInput);
+            }
+            parentInput.value = replyToId;
+        }
+    }, true);
+    
+    // After successful submit, reset reply state
+    const origFormSubmit = form.submit;
+    form.addEventListener('submit', async function(e) {}, { capture: false });
+    
+    // @Mention autocomplete
+    let mentionDropdown = null;
+    let mentionSearchTimeout = null;
+    
+    textarea.addEventListener('input', function(e) {
+        const cursorPos = this.selectionStart;
+        const textBeforeCursor = this.value.substring(0, cursorPos);
+        const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+        
+        if (mentionMatch) {
+            const query = mentionMatch[1];
+            clearTimeout(mentionSearchTimeout);
+            mentionSearchTimeout = setTimeout(() => searchMentions(query, cursorPos - mentionMatch[0].length), 200);
+        } else {
+            closeMentionDropdown();
+        }
+    });
+    
+    async function searchMentions(query, startPos) {
+        if (query.length < 1) {
+            closeMentionDropdown();
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
+            const users = await response.json();
+            
+            if (users.length > 0) {
+                showMentionDropdown(users, startPos);
+            } else {
+                closeMentionDropdown();
+            }
+        } catch (err) {
+            console.error('Mention search error:', err);
+        }
+    }
+    
+    function showMentionDropdown(users, startPos) {
+        closeMentionDropdown();
+        
+        const coords = getCaretCoordinates(textarea);
+        mentionDropdown = document.createElement('div');
+        mentionDropdown.className = 'mention-dropdown shadow rounded bg-white border';
+        mentionDropdown.style.cssText = `position: absolute; z-index: 1050; max-height: 200px; overflow-y: auto; min-width: 200px;`;
+        
+        users.forEach(user => {
+            const item = document.createElement('div');
+            item.className = 'mention-item px-3 py-2 cursor-pointer';
+            item.style.cursor = 'pointer';
+            item.innerHTML = `<strong>@${user.name}</strong> <small class="text-muted">${user.role}</small>`;
+            item.addEventListener('click', () => insertMention(user.name, startPos));
+            item.addEventListener('mouseenter', () => item.classList.add('bg-light'));
+            item.addEventListener('mouseleave', () => item.classList.remove('bg-light'));
+            mentionDropdown.appendChild(item);
+        });
+        
+        textarea.parentElement.style.position = 'relative';
+        textarea.parentElement.appendChild(mentionDropdown);
+    }
+    
+    function closeMentionDropdown() {
+        if (mentionDropdown) {
+            mentionDropdown.remove();
+            mentionDropdown = null;
+        }
+    }
+    
+    function insertMention(name, startPos) {
+        const beforeMention = textarea.value.substring(0, startPos);
+        const afterMention = textarea.value.substring(textarea.selectionStart);
+        const mentionText = name.includes(' ') ? `@"${name}" ` : `@${name} `;
+        textarea.value = beforeMention + mentionText + afterMention;
+        textarea.focus();
+        closeMentionDropdown();
+    }
+    
+    function getCaretCoordinates(element) {
+        // Simplified - just return offset from element
+        return { top: element.offsetTop + element.offsetHeight, left: element.offsetLeft };
+    }
+    
+    // Close dropdown on click outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.mention-dropdown') && e.target !== textarea) {
+            closeMentionDropdown();
+        }
+    });
+    
+    // Scroll to comment if URL has hash
+    if (window.location.hash && window.location.hash.startsWith('#comment-')) {
+        const targetComment = document.querySelector(window.location.hash);
+        if (targetComment) {
+            targetComment.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            targetComment.classList.add('highlight-flash');
+            setTimeout(() => targetComment.classList.remove('highlight-flash'), 2000);
+        }
+    }
 });
 </script>
 @endpush
 @endsection
+
 

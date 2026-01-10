@@ -115,6 +115,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:sa,foreman,sparepart,control_tower,manager,admin')->group(function () {
         Route::post('jobs/{job}/remark', [JobController::class, 'addRemark'])->name('jobs.add-remark');
         Route::post('jobs/bulk-update', [JobController::class, 'bulkUpdate'])->name('jobs.bulk-update');
+        Route::get('api/users/search', [JobController::class, 'searchUsers'])->name('api.users.search');
     });
 
     // Sparepart can update Order & Parts on jobs that need parts

@@ -7,6 +7,8 @@ use App\Actions\Jobs\MarkAsInvoiced;
 use App\Http\Requests\StoreJobRequest;
 use App\Http\Requests\UpdateJobRequest;
 use App\Models\Job;
+use App\Models\Notification;
+use App\Models\Remark;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -362,8 +364,9 @@ class JobController extends Controller
 
         $validated = $request->validate([
             'remark_text' => 'required|string',
+            'parent_id' => 'nullable|exists:remarks,id',
             'images' => 'nullable|array|max:3',
-            'images.*' => 'image|mimes:jpeg,png,gif,webp|max:10240', // 10MB max per image
+            'images.*' => 'image|mimes:jpeg,png,gif,webp|max:10240',
         ]);
 
         // Process and store images if uploaded
@@ -375,11 +378,63 @@ class JobController extends Controller
             }
         }
 
-        $remark = $job->addRemark($validated['remark_text'], $user?->name, $user?->id);
+        // Parse @mentions from text
+        $mentionedUserIds = Remark::parseMentions($validated['remark_text']);
         
-        // Save images to the remark
-        if (!empty($imagePaths)) {
-            $remark->update(['images' => $imagePaths]);
+        // Create the remark
+        $remark = $job->remarks()->create([
+            'remark_text' => $validated['remark_text'],
+            'parent_id' => $validated['parent_id'] ?? null,
+            'user_id' => $user?->id,
+            'created_by' => $user?->name,
+            'images' => !empty($imagePaths) ? $imagePaths : null,
+            'mentions' => !empty($mentionedUserIds) ? $mentionedUserIds : null,
+        ]);
+        
+        // Update job's latest_remark (for top-level comments only)
+        if (!$remark->parent_id) {
+            $job->update([
+                'latest_remark' => $validated['remark_text'],
+                'latest_remark_at' => now(),
+            ]);
+        }
+        
+        // Send notifications for @mentions
+        foreach ($mentionedUserIds as $mentionedUserId) {
+            if ($mentionedUserId != $user?->id) { // Don't notify self
+                Notification::notify(
+                    $mentionedUserId,
+                    Notification::TYPE_MENTION,
+                    "You were mentioned in WIP {$job->job_number}",
+                    "@{$user->name}: " . \Illuminate\Support\Str::limit($validated['remark_text'], 80),
+                    route('jobs.show', $job) . "#comment-{$remark->id}",
+                    'at',
+                    'primary'
+                );
+            }
+        }
+        
+        // Send notification for reply (to parent comment author)
+        if ($remark->parent_id) {
+            $parentRemark = Remark::find($remark->parent_id);
+            if ($parentRemark && $parentRemark->user_id && $parentRemark->user_id != $user?->id) {
+                Notification::notify(
+                    $parentRemark->user_id,
+                    Notification::TYPE_REPLY,
+                    "Someone replied to your comment on WIP {$job->job_number}",
+                    "@{$user->name}: " . \Illuminate\Support\Str::limit($validated['remark_text'], 80),
+                    route('jobs.show', $job) . "#comment-{$remark->id}",
+                    'reply-fill',
+                    'info'
+                );
+            }
+        }
+        
+        // Notify assigned SA/Foreman (existing behavior, wrapped for safety)
+        try {
+            $job->notifyAssignedUsersPublic($validated['remark_text'], $user?->name, $user?->id);
+        } catch (\Exception $e) {
+            \Log::debug("Notification failed: " . $e->getMessage());
         }
         
         // Log activity
@@ -387,14 +442,16 @@ class JobController extends Controller
         if (!empty($imagePaths)) {
             $activityMessage .= " (with " . count($imagePaths) . " image(s))";
         }
+        if ($remark->parent_id) {
+            $activityMessage = "Reply added: \"" . \Illuminate\Support\Str::limit($validated['remark_text'], 50) . "\"";
+        }
         \App\Models\JobActivity::log($job, 'remark_added', $activityMessage);
         
-        // Load the user relationship for the response
-        $remark->load('user');
+        // Load relationships for response
+        $remark->load(['user', 'replies']);
 
         // Check if this is an AJAX request
         if ($request->expectsJson()) {
-            // Determine role color for badge
             $roleColor = match($user?->role) {
                 'admin' => 'danger',
                 'manager' => 'primary',
@@ -407,7 +464,9 @@ class JobController extends Controller
                 'success' => true,
                 'remark' => [
                     'id' => $remark->id,
+                    'parent_id' => $remark->parent_id,
                     'text' => $remark->remark_text,
+                    'formatted_text' => $remark->formatted_text,
                     'commenter_name' => $remark->commenter_name,
                     'initials' => $remark->commenter_initials,
                     'avatar_color' => sprintf('#%06X', crc32($remark->commenter_name) & 0xFFFFFF),
@@ -420,7 +479,7 @@ class JobController extends Controller
         }
 
         return redirect()->route('jobs.show', $job)
-            ->with('success', 'Remark added successfully.');
+            ->with('success', 'Comment added successfully.');
     }
 
     /**
@@ -739,5 +798,29 @@ class JobController extends Controller
         return response($html)
             ->header('Content-Type', 'text/html')
             ->header('Content-Disposition', 'inline; filename="job-' . $job->job_number . '.html"');
+    }
+
+    /**
+     * Search users for @mention autocomplete
+     */
+    public function searchUsers(Request $request): JsonResponse
+    {
+        $query = $request->input('q', '');
+        
+        if (strlen($query) < 1) {
+            return response()->json([]);
+        }
+        
+        $users = \App\Models\User::where('name', 'like', "%{$query}%")
+            ->orderBy('name')
+            ->limit(10)
+            ->get(['id', 'name', 'role']);
+        
+        return response()->json($users->map(fn($u) => [
+            'id' => $u->id,
+            'name' => $u->name,
+            'role' => $u->getRoleDisplayName(),
+            'initials' => strtoupper(substr($u->name, 0, 2)),
+        ]));
     }
 }
