@@ -33,6 +33,14 @@ Route::middleware('auth')->group(function () {
     // Dashboard - Everyone can see (with cached stats)
     Route::get('/', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
     
+    // Dashboard Customization
+    Route::prefix('dashboard')->name('dashboard.')->group(function () {
+        Route::get('customize', [\App\Http\Controllers\DashboardSettingsController::class, 'index'])->name('customize');
+        Route::post('customize', [\App\Http\Controllers\DashboardSettingsController::class, 'update'])->name('customize.save');
+        Route::post('customize/reset', [\App\Http\Controllers\DashboardSettingsController::class, 'reset'])->name('customize.reset');
+        Route::post('widgets/reorder', [\App\Http\Controllers\DashboardSettingsController::class, 'reorder'])->name('widgets.reorder');
+    });
+    
     // Global Search
     Route::get('search', [\App\Http\Controllers\SearchController::class, 'search'])->name('search');
     

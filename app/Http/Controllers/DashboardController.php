@@ -41,6 +41,12 @@ class DashboardController extends Controller
      */
     public function index(): View
     {
+        $user = auth()->user();
+        
+        // Get user's dashboard preferences
+        $dashboardPreference = $user->getDashboardPreference();
+        $enabledWidgets = collect($dashboardPreference->getEnabledWidgets())->pluck('id')->toArray();
+        
         // Cache dashboard stats for 5 minutes
         $stats = Cache::remember('dashboard_stats', self::CACHE_TTL, function () {
             return [
@@ -94,7 +100,7 @@ class DashboardController extends Controller
 
         // Parts tracking stats for sparepart role
         $partsStats = null;
-        if (auth()->check() && in_array(auth()->user()->role, ['sparepart', 'admin'])) {
+        if (in_array($user->role, ['sparepart', 'admin', 'manager'])) {
             $partsStats = Cache::remember('dashboard_parts_stats', 120, function () {
                 return [
                     'pending' => PartOrder::pending()->count(),
@@ -102,6 +108,46 @@ class DashboardController extends Controller
                     'overdue' => PartOrder::overdue()->count(),
                 ];
             });
+        }
+
+        // My Jobs (for SA/Foreman)
+        $myJobs = collect();
+        if (in_array('my_jobs', $enabledWidgets)) {
+            $myJobsQuery = Job::uninvoiced()->latest();
+            if ($user->serviceAdvisor) {
+                $myJobsQuery->where('service_advisor', $user->serviceAdvisor->name);
+            } elseif ($user->foreman) {
+                $myJobsQuery->where('foreman', $user->foreman->name);
+            }
+            $myJobs = $myJobsQuery->take(10)->get();
+        }
+
+        // Today's Bookings
+        $bookingsToday = collect();
+        if (in_array('bookings_today', $enabledWidgets)) {
+            $bookingsToday = \App\Models\Booking::whereDate('booking_date', today())
+                ->orderBy('booking_time')
+                ->take(5)
+                ->get();
+        }
+
+        // Pending Invoices
+        $pendingInvoices = collect();
+        if (in_array('pending_invoices', $enabledWidgets)) {
+            $pendingInvoices = \App\Models\JobInvoice::whereIn('status', ['pending', 'partially_paid'])
+                ->with('job')
+                ->orderByDesc('invoice_date')
+                ->take(5)
+                ->get();
+        }
+
+        // Saved Filters
+        $savedFilters = collect();
+        if (in_array('saved_filters', $enabledWidgets)) {
+            $savedFilters = \App\Models\SavedReport::where('user_id', $user->id)
+                ->orderByDesc('created_at')
+                ->take(5)
+                ->get();
         }
 
         return view('dashboard', [
@@ -113,6 +159,11 @@ class DashboardController extends Controller
             'recentJobs' => $recentJobs,
             'needsPartsJobs' => $needsPartsJobs,
             'partsStats' => $partsStats,
+            'enabledWidgets' => $enabledWidgets,
+            'myJobs' => $myJobs,
+            'bookingsToday' => $bookingsToday,
+            'pendingInvoices' => $pendingInvoices,
+            'savedFilters' => $savedFilters,
         ]);
     }
 

@@ -115,6 +115,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the user's dashboard preference settings.
+     */
+    public function dashboardPreference(): HasOne
+    {
+        return $this->hasOne(UserDashboardPreference::class);
+    }
+
+    /**
+     * Get or create dashboard preferences for this user.
+     */
+    public function getDashboardPreference(): UserDashboardPreference
+    {
+        return UserDashboardPreference::getOrCreateForUser($this);
+    }
+
+    /**
      * Get column preferences with defaults
      */
     public function getColumnPrefs(): array
