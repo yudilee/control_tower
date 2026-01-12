@@ -179,4 +179,38 @@ class UserController extends Controller
         return redirect()->route('admin.users.index')
             ->with('success', "User '{$name}' deleted successfully.");
     }
+
+    /**
+     * Reset password for an internal user (admin only)
+     */
+    public function resetPassword(Request $request, User $user)
+    {
+        // Only allow resetting password for internal database users
+        if ($user->auth_source && $user->auth_source !== 'local') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot reset password for LDAP users.',
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user->update([
+            'password' => bcrypt($validated['password']),
+        ]);
+
+        // Log activity
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($user)
+            ->withProperties(['action' => 'admin_password_reset', 'target_user' => $user->email])
+            ->log('Admin reset password for user');
+
+        return response()->json([
+            'success' => true,
+            'message' => "Password reset successfully for {$user->name}",
+        ]);
+    }
 }

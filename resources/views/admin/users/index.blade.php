@@ -78,17 +78,24 @@
                                 </span>
                             </td>
                             <td>
-                                <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-primary">
+                                <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-primary" title="Edit Role">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                @if((!$user->auth_source || $user->auth_source === 'local') && $user->id !== auth()->id())
+                                @if(!$user->auth_source || $user->auth_source === 'local')
+                                <button type="button" class="btn btn-sm btn-outline-warning" 
+                                        onclick="openPasswordModal({{ $user->id }}, '{{ addslashes($user->name) }}')"
+                                        title="Reset Password">
+                                    <i class="bi bi-key"></i>
+                                </button>
+                                @if($user->id !== auth()->id())
                                 <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete user {{ $user->name }}?');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
+                                @endif
                                 @endif
                             </td>
                         </tr>
@@ -236,6 +243,108 @@ function searchLdap() {
         alert('LDAP search failed');
     });
 }
+
+// Password Reset Modal
+let passwordModal = null;
+
+function openPasswordModal(userId, userName) {
+    document.getElementById('resetPasswordUserId').value = userId;
+    document.getElementById('resetPasswordUserName').textContent = userName;
+    document.getElementById('newPassword').value = '';
+    document.getElementById('newPasswordConfirm').value = '';
+    
+    if (!passwordModal) {
+        passwordModal = new bootstrap.Modal(document.getElementById('passwordResetModal'));
+    }
+    passwordModal.show();
+}
+
+function submitPasswordReset() {
+    const userId = document.getElementById('resetPasswordUserId').value;
+    const password = document.getElementById('newPassword').value;
+    const passwordConfirm = document.getElementById('newPasswordConfirm').value;
+    
+    if (password.length < 8) {
+        alert('Password must be at least 8 characters');
+        return;
+    }
+    
+    if (password !== passwordConfirm) {
+        alert('Passwords do not match');
+        return;
+    }
+    
+    const btn = document.getElementById('submitPasswordBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Updating...';
+    
+    fetch(`/admin/users/${userId}/reset-password`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ password: password, password_confirmation: passwordConfirm })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            passwordModal.hide();
+            alert(data.message);
+        } else {
+            alert(data.message || 'Failed to reset password');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Failed to reset password');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check me-1"></i>Reset Password';
+    });
+}
 </script>
 @endpush
+
+<!-- Password Reset Modal -->
+<div class="modal fade" id="passwordResetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">
+                    <i class="bi bi-key me-2"></i>Reset Password
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="resetPasswordUserId">
+                
+                <div class="alert alert-info small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Resetting password for: <strong id="resetPasswordUserName"></strong>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">New Password <span class="text-danger">*</span></label>
+                    <input type="password" id="newPassword" class="form-control" minlength="8" required>
+                    <div class="form-text">Minimum 8 characters</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                    <input type="password" id="newPasswordConfirm" class="form-control" minlength="8" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="submitPasswordBtn" onclick="submitPasswordReset()">
+                    <i class="bi bi-check me-1"></i>Reset Password
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
+

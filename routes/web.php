@@ -222,6 +222,7 @@ Route::middleware('auth')->group(function () {
         Route::post('users/search-ldap', [\App\Http\Controllers\Admin\UserController::class, 'searchLdap'])->name('users.search-ldap');
         Route::post('users/assign-role', [\App\Http\Controllers\Admin\UserController::class, 'assignRole'])->name('users.assign-role');
         Route::delete('users/{user}', [\App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('users.destroy');
+        Route::post('users/{user}/reset-password', [\App\Http\Controllers\Admin\UserController::class, 'resetPassword'])->name('users.reset-password');
 
         // LDAP Settings
         Route::get('ldap', [\App\Http\Controllers\LdapServerController::class, 'index'])->name('ldap.index');
