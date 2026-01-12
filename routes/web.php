@@ -208,7 +208,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Sparepart can update need_part field - Sparepart, Control Tower, Manager, Admin
-    Route::middleware('role:sparepart,control_tower,manager,admin')->group(function () {
+    Route::middleware('role:foreman,sparepart,control_tower,manager,admin')->group(function () {
         Route::patch('jobs/{job}/need-part', [JobController::class, 'updateNeedPart'])->name('jobs.update-need-part');
     });
 

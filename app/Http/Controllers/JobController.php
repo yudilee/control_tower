@@ -639,6 +639,9 @@ class JobController extends Controller
      */
     public function updateNeedPart(Request $request, Job $job): JsonResponse
     {
+        // Check authorization (Foreman can only update own jobs)
+        $this->checkAssignmentAuthorization($job);
+
         // Toggle or set to specific value
         $newValue = $request->has('need_part') 
             ? (bool) $request->need_part 

@@ -327,12 +327,12 @@
                 </div>
                 <div class="card-body py-3">
                     {{-- Needs Parts Toggle --}}
-                    @if(auth()->user()->canEdit())
+                    @if(auth()->user()->canEdit() || auth()->user()->hasRole(['foreman', 'sparepart']))
                     <div class="form-check">
                         <input type="hidden" name="need_part" value="0">
                         <input class="form-check-input" type="checkbox" name="need_part" value="1" id="needPart" 
                                {{ old('need_part', $job->need_part) ? 'checked' : '' }}
-                               {{ ($readonly || $isControlTower) ? 'disabled' : '' }}>
+                               {{ (($readonly && !auth()->user()->hasRole(['foreman', 'sparepart'])) || $isControlTower) ? 'disabled' : '' }}>
                         <label class="form-check-label text-warning fw-bold" for="needPart">
                             <i class="bi bi-exclamation-triangle me-1"></i>This job needs parts
                         </label>
