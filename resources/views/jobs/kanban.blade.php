@@ -175,15 +175,49 @@
             </div>
             <div class="col-auto">
                 <select name="service_advisor" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="">All Service Advisors</option>
+                    <option value="">All SA</option>
                     @foreach($filterOptions['service_advisor'] as $sa)
                     <option value="{{ $sa }}" {{ request('service_advisor') == $sa ? 'selected' : '' }}>{{ $sa }}</option>
                     @endforeach
                 </select>
             </div>
-            @if(request()->hasAny(['franchise', 'service_advisor']))
             <div class="col-auto">
-                <a href="{{ route('jobs.kanban') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+                <select name="foreman" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Foremen</option>
+                    @foreach($filterOptions['foreman'] as $fm)
+                    <option value="{{ $fm }}" {{ request('foreman') == $fm ? 'selected' : '' }}>{{ $fm }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-auto">
+                <select name="department" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Dept</option>
+                    @foreach($filterOptions['department'] as $dept)
+                    <option value="{{ $dept }}" {{ request('department') == $dept ? 'selected' : '' }}>
+                        {{ $dept == 'W' ? 'Workshop' : ($dept == 'B' ? 'Body & Paint' : $dept) }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-auto">
+                <input type="date" name="date_from" class="form-control form-control-sm" 
+                       value="{{ request('date_from') }}" 
+                       placeholder="From"
+                       title="Job Date From"
+                       onchange="this.form.submit()">
+            </div>
+            <div class="col-auto">
+                <input type="date" name="date_to" class="form-control form-control-sm" 
+                       value="{{ request('date_to') }}" 
+                       placeholder="To"
+                       title="Job Date To"
+                       onchange="this.form.submit()">
+            </div>
+            @if(request()->hasAny(['franchise', 'service_advisor', 'foreman', 'department', 'date_from', 'date_to']))
+            <div class="col-auto">
+                <a href="{{ route('jobs.kanban') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x-circle me-1"></i>Clear
+                </a>
             </div>
             @endif
         </form>

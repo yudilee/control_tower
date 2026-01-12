@@ -731,6 +731,18 @@ class JobController extends Controller
         if ($request->filled('service_advisor')) {
             $query->where('service_advisor', $request->service_advisor);
         }
+        if ($request->filled('foreman')) {
+            $query->where('foreman', $request->foreman);
+        }
+        if ($request->filled('department')) {
+            $query->where('department', $request->department);
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('job_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('job_date', '<=', $request->date_to);
+        }
         
         // Get jobs grouped by work status
         $jobs = $query->orderBy('job_date', 'desc')->get();
@@ -765,11 +777,15 @@ class JobController extends Controller
             $jobsByStatus[$status->value] = $statusJobs->take(100); // Show up to 100 per column
         }
         
-        // Filter options
+        // Filter options - get from uninvoiced jobs
+        $baseQuery = $isFinance ? Job::invoiced() : Job::uninvoiced();
         $filterOptions = [
-            'service_advisor' => Job::uninvoiced()->whereNotNull('service_advisor')
+            'service_advisor' => (clone $baseQuery)->whereNotNull('service_advisor')
                 ->distinct()->pluck('service_advisor')->sort()->values(),
+            'foreman' => (clone $baseQuery)->whereNotNull('foreman')
+                ->distinct()->pluck('foreman')->sort()->values(),
             'franchise' => ['PC', 'CV'],
+            'department' => ['W', 'B'], // Workshop, Body & Paint
         ];
         
         // Check if user can edit Kanban (drag/drop)
