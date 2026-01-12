@@ -15,9 +15,10 @@ class DataCleanupController extends Controller
      */
     protected $tableGroups = [
         'Core Data' => [
-            'remarks' => 'Remarks',
+            'remarks' => 'Remarks / Comments',
             'job_activities' => 'Job Activities',
             'job_invoices' => 'Job Invoices',
+            'part_orders' => 'Part Orders',
             'jobs' => 'Jobs',
             'bookings' => 'Bookings',
             'pdi_records' => 'PDI Records',
@@ -28,6 +29,7 @@ class DataCleanupController extends Controller
         'Customer Links' => [
             'customer_summaries' => 'Customer Summaries (Lookup Cache)',
             'customer_vehicles' => 'Customer-Vehicle Links',
+            'customer_aliases' => 'Customer Aliases',
         ],
         'Merge & Duplicates' => [
             'duplicate_customer_groups' => 'Duplicate Customer Groups',
@@ -35,12 +37,21 @@ class DataCleanupController extends Controller
             'customer_merge_logs' => 'Customer Merge Logs',
             'dismissed_duplicate_groups' => 'Dismissed Duplicate Groups',
         ],
-        'System Data' => [
+        'User Data' => [
             'notifications' => 'Notifications',
+            'announcements' => 'Announcements',
+            'recently_viewed' => 'Recently Viewed Jobs',
+            'user_dashboard_preferences' => 'Dashboard Preferences',
+            'push_subscriptions' => 'Push Subscriptions',
             'user_sessions' => 'User Sessions',
             'saved_reports' => 'Saved Reports',
-            'imports' => 'Imports',
+        ],
+        'System Data' => [
+            'imports' => 'Import History',
             'audit_logs' => 'Audit Logs',
+            'audit_log_archives' => 'Audit Log Archives',
+            'backup_logs' => 'Backup Logs',
+            'scheduler_logs' => 'Scheduler Logs',
         ],
     ];
 
@@ -88,26 +99,41 @@ class DataCleanupController extends Controller
 
             // Define proper order to avoid FK issues (child tables first)
             $cleanOrder = [
+                // User data first (no FK dependencies)
+                'recently_viewed',
+                'push_subscriptions',
+                'user_dashboard_preferences',
+                'announcements',
+                'notifications',
+                'user_sessions',
+                'saved_reports',
+                // Job-related child tables
                 'remarks',
                 'job_activities',
                 'job_invoices',
+                'part_orders',
+                // Customer merge/duplicate tables
                 'duplicate_customer_groups',
                 'customer_merge_suggestions',
                 'customer_merge_logs',
                 'dismissed_duplicate_groups',
-                'notifications',
-                'user_sessions',
-                'saved_reports',
+                // Customer cache tables
                 'customer_summaries',
                 'customer_vehicles',
-                'customers',
+                'customer_aliases',
+                // Core data tables
                 'jobs',
                 'bookings',
                 'pdi_records',
                 'towing_records',
                 'vehicles',
+                'customers',
+                // System logs
                 'imports',
                 'audit_logs',
+                'audit_log_archives',
+                'backup_logs',
+                'scheduler_logs',
             ];
 
             foreach ($cleanOrder as $table) {
