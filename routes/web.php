@@ -171,15 +171,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('service-advisors', \App\Http\Controllers\ServiceAdvisorController::class)->except(['destroy']);
         Route::resource('foremen', \App\Http\Controllers\ForemanController::class)->except(['destroy']);
 
-        // Part Orders Management
-        Route::prefix('parts')->name('parts.')->group(function () {
-            Route::get('kanban', [\App\Http\Controllers\PartOrderController::class, 'kanban'])->name('kanban');
-            Route::get('summary', [\App\Http\Controllers\PartOrderController::class, 'summary'])->name('summary');
-            Route::get('job/{job}', [\App\Http\Controllers\PartOrderController::class, 'forJob'])->name('for-job');
-        });
-        Route::resource('part-orders', \App\Http\Controllers\PartOrderController::class);
-        Route::post('part-orders/{partOrder}/status', [\App\Http\Controllers\PartOrderController::class, 'updateStatus'])->name('part-orders.update-status');
-        Route::post('part-orders/create-from-job', [\App\Http\Controllers\PartOrderController::class, 'createFromJob'])->name('part-orders.create-from-job');
+
 
         // Imports
         Route::prefix('imports')->name('imports.')->group(function () {
@@ -207,9 +199,19 @@ Route::middleware('auth')->group(function () {
         Route::delete('reports/{report}', [ReportController::class, 'deleteReport'])->name('reports.delete');
     });
 
-    // Sparepart can update need_part field - Sparepart, Control Tower, Manager, Admin
+    // Part Tracking & Job Updates - Foreman, Sparepart, Control Tower, Manager, Admin
     Route::middleware('role:foreman,sparepart,control_tower,manager,admin')->group(function () {
         Route::patch('jobs/{job}/need-part', [JobController::class, 'updateNeedPart'])->name('jobs.update-need-part');
+
+        // Part Orders Management
+        Route::prefix('parts')->name('parts.')->group(function () {
+            Route::get('kanban', [\App\Http\Controllers\PartOrderController::class, 'kanban'])->name('kanban');
+            Route::get('summary', [\App\Http\Controllers\PartOrderController::class, 'summary'])->name('summary');
+            Route::get('job/{job}', [\App\Http\Controllers\PartOrderController::class, 'forJob'])->name('for-job');
+        });
+        Route::resource('part-orders', \App\Http\Controllers\PartOrderController::class);
+        Route::post('part-orders/{partOrder}/status', [\App\Http\Controllers\PartOrderController::class, 'updateStatus'])->name('part-orders.update-status');
+        Route::post('part-orders/create-from-job', [\App\Http\Controllers\PartOrderController::class, 'createFromJob'])->name('part-orders.create-from-job');
     });
 
     // Admin Only - User Management, LDAP Settings, DELETE operations

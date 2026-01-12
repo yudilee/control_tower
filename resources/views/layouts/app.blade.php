@@ -203,7 +203,7 @@
 
                 {{-- Parts Tracking Menu (for sparepart, control_tower, manager, or admin) --}}
                 @auth
-                @if(in_array(Auth::user()->role, ['sparepart', 'control_tower', 'manager', 'admin']))
+                @if(in_array(Auth::user()->role, ['foreman', 'sparepart', 'control_tower', 'manager', 'admin']))
                 @php
                     $isPartsActive = request()->routeIs('parts.*') || request()->routeIs('part-orders.*');
                 @endphp
