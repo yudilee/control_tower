@@ -50,7 +50,8 @@ class JobController extends Controller
                 abort(403, 'Unauthorized. You are not assigned to this job.');
             }
         } elseif ($user->hasRole('foreman')) {
-            if ($user->foreman?->name !== $job->foreman) {
+            $foremanNames = $user->foremen()->pluck('name')->toArray();
+            if (!in_array($job->foreman, $foremanNames)) {
                 abort(403, 'Unauthorized. You are not assigned to this job.');
             }
         } elseif ($user->hasRole('sparepart')) {
@@ -86,9 +87,9 @@ class JobController extends Controller
                 $query->whereRaw('1 = 0');
             }
         } elseif ($user->hasRole('foreman')) {
-            $foremanName = $user->foreman?->name;
-            if ($foremanName) {
-                $query->where('foreman', $foremanName);
+            $foremanNames = $user->foremen()->pluck('name')->toArray();
+            if (!empty($foremanNames)) {
+                $query->whereIn('foreman', $foremanNames);
             } else {
                 // If Foreman user has no linked Foreman record, show nothing
                 $query->whereRaw('1 = 0');
@@ -756,9 +757,9 @@ class JobController extends Controller
                 $query->whereRaw('1 = 0');
             }
         } elseif ($user->hasRole('foreman')) {
-            $foremanName = $user->foreman?->name;
-            if ($foremanName) {
-                $query->where('foreman', $foremanName);
+            $foremanNames = $user->foremen()->pluck('name')->toArray();
+            if (!empty($foremanNames)) {
+                $query->whereIn('foreman', $foremanNames);
             } else {
                 $query->whereRaw('1 = 0');
             }

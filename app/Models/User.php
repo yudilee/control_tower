@@ -66,11 +66,19 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the foreman linked to this user
+     * Get the foreman linked to this user (primary)
      */
     public function foreman(): HasOne
     {
-        return $this->hasOne(Foreman::class);
+        return $this->hasOne(Foreman::class)->latest();
+    }
+
+    /**
+     * Get all foremen linked to this user
+     */
+    public function foremen(): HasMany
+    {
+        return $this->hasMany(Foreman::class);
     }
 
     /**
@@ -302,11 +310,14 @@ class User extends Authenticatable
 
         // Foreman can only update their assigned jobs
         if ($this->role === 'foreman') {
-            $linkedForemanName = $this->foreman?->name;
-            if (!$linkedForemanName) {
-                return ['allowed' => false, 'reason' => 'Your user account is not linked to a Foreman in master data.'];
+            $linkedForemenNames = $this->foremen()->pluck('name')->map(fn($n) => strtolower(trim($n)))->toArray();
+            
+            if (empty($linkedForemenNames)) {
+                return ['allowed' => false, 'reason' => 'Your user account is not linked to any Foreman in master data.'];
             }
-            if (strtolower(trim($job->foreman ?? '')) !== strtolower(trim($linkedForemanName))) {
+            
+            $jobForeman = strtolower(trim($job->foreman ?? ''));
+            if (!in_array($jobForeman, $linkedForemenNames)) {
                 return ['allowed' => false, 'reason' => "This job is assigned to Foreman '{$job->foreman}', not you."];
             }
             return ['allowed' => true, 'reason' => null];
@@ -349,13 +360,14 @@ class User extends Authenticatable
         }
 
         // Foreman can only add remarks to jobs they are assigned to
-        // Compare job's foreman field with the linked Foreman's name
+        // Compare job's foreman field with any of the linked Foreman's names
         if ($this->role === 'foreman') {
-            $linkedForemanName = $this->foreman?->name;
-            if (!$linkedForemanName) {
+            $linkedForemenNames = $this->foremen()->pluck('name')->map(fn($n) => strtolower(trim($n)))->toArray();
+            
+            if (empty($linkedForemenNames)) {
                 return false; // No linked Foreman record
             }
-            return strtolower(trim($job->foreman ?? '')) === strtolower(trim($linkedForemanName));
+            return in_array(strtolower(trim($job->foreman ?? '')), $linkedForemenNames);
         }
 
         // Sparepart can only add remarks to jobs that need parts
