@@ -746,6 +746,7 @@ class JobController extends Controller
             
             // Filter jobs for this status
             // Jobs with NULL work_status go to the FIRST column
+            // Use normalizeWorkStatus to handle legacy status values
             $statusJobs = $jobs->filter(function($job) use ($status, $isFirstColumn) {
                 $jobStatus = $job->work_status;
                 
@@ -754,7 +755,10 @@ class JobController extends Controller
                     return $isFirstColumn;
                 }
                 
-                return strtolower($jobStatus) === strtolower($status->value);
+                // Normalize the job's work status to handle legacy values
+                $normalizedJobStatus = Job::normalizeWorkStatus($jobStatus);
+                
+                return strtolower($normalizedJobStatus) === strtolower($status->value);
             });
             
             $totalsByStatus[$status->value] = $statusJobs->count();

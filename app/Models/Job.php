@@ -255,19 +255,21 @@ class Job extends Model
 
     /**
      * Get work status options for dropdowns/views (replaces DropdownOption::getOptions('work_status'))
-     * Returns a collection of objects with value, label, icon, color properties
+     * Returns a collection of objects with id, value, label, icon, color, sort_order properties
      */
     public static function getWorkStatusOptions(): \Illuminate\Support\Collection
     {
-        return collect(self::WORK_STATUSES)->map(function ($value) {
+        return collect(self::WORK_STATUSES)->map(function ($value, $index) {
             $meta = self::WORK_STATUS_META[$value] ?? ['label' => $value, 'icon' => 'circle', 'color' => 'secondary'];
             return (object) [
+                'id' => $index + 1, // 1-based id for compatibility
                 'value' => $value,
                 'label' => $meta['label'],
                 'icon' => $meta['icon'],
                 'color' => $meta['color'],
+                'sort_order' => $index + 1,
             ];
-        });
+        })->values();
     }
 
     /**
