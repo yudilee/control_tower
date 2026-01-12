@@ -1514,3 +1514,34 @@ body.has-ticker .mobile-menu-toggle {
         /* Below ticker */
     }
 }
+/* ========================================
+   KANBAN DARK MODE FIXES
+   ======================================== */
+.kanban-column-bg {
+    background-color: var(--bs-light);
+    transition: background-color 0.3s ease;
+}
+
+[data-bs-theme="dark"] .kanban-column-bg {
+    background-color: #2b3035 !important;
+    border: 1px solid #373b3e;
+}
+
+[data-bs-theme="dark"] .kanban-column .text-muted {
+    color: #adb5bd !important;
+}
+
+[data-bs-theme="dark"] .kanban-card {
+    background-color: #212529;
+    border: 1px solid #373b3e !important;
+    color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .kanban-card .text-muted {
+    color: #6c757d !important; /* Keep card muted text slightly darker than body text */
+}
+
+/* Ensure shadow on cards is subtle in dark mode */
+[data-bs-theme="dark"] .kanban-card.shadow-sm {
+    box-shadow: 0 .125rem .25rem rgba(0,0,0,.5) !important;
+}

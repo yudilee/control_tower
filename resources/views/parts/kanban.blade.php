@@ -144,10 +144,10 @@
                         </div>
                         <i class="bi bi-hourglass-split text-muted"></i>
                     </div>
-                    <div class="card-body kanban-column p-2" 
+                    <div class="card-body kanban-column p-2 kanban-column-bg" 
                          data-status="pending"
                          data-is-job-column="true"
-                         style="min-height: 400px; background: var(--bs-light); border-radius: 0.5rem;">
+                         style="min-height: 400px; border-radius: 0.5rem;">
                         @forelse($pendingJobs as $job)
                             <div class="kanban-card kanban-job-card card border-0 shadow-sm mb-2 cursor-grab" 
                                  data-job-id="{{ $job->id }}"
@@ -202,9 +202,9 @@
                             </div>
                             <i class="bi {{ $statusInfo['icon'] }} text-muted"></i>
                         </div>
-                        <div class="card-body kanban-column p-2" 
+                        <div class="card-body kanban-column p-2 kanban-column-bg" 
                              data-status="{{ $statusKey }}"
-                             style="min-height: 400px; background: var(--bs-light); border-radius: 0.5rem;">
+                             style="min-height: 400px; border-radius: 0.5rem;">
                             @forelse($ordersByStatus[$statusKey] ?? [] as $order)
                                 <div class="kanban-card kanban-order-card card border-0 shadow-sm mb-2 cursor-grab" 
                                      data-order-id="{{ $order->id }}"

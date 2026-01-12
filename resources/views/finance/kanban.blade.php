@@ -152,7 +152,7 @@
                                 </span>
                             </div>
                         </div>
-                        <div class="card-body kanban-column p-2 bg-light" 
+                        <div class="card-body kanban-column p-2 kanban-column-bg"  
                              data-status="{{ $statusKey }}"
                              style="min-height: 400px; border-radius: 0 0 0.5rem 0.5rem; overflow-y: auto; max-height: 600px;">
                              
