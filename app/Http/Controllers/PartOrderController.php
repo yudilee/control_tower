@@ -457,6 +457,7 @@ class PartOrderController extends Controller
         $validated = $request->validate([
             'job_id' => 'required|exists:jobs,id',
             'rq' => 'required|string|max:50',
+            'notes' => 'nullable|string|max:1000',
         ]);
         
         $job = Job::findOrFail($validated['job_id']);
@@ -484,6 +485,7 @@ class PartOrderController extends Controller
         $partOrder = PartOrder::create([
             'job_id' => $job->id,
             'rq' => $validated['rq'],
+            'notes' => $validated['notes'] ?? null,
             'status' => PartOrder::STATUS_BUKA_RQ,
             'order_date' => now()->toDateString(),
             'created_by' => auth()->id(),

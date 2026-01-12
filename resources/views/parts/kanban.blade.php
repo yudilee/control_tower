@@ -280,6 +280,11 @@
                         <label class="form-label">RQ Number <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="rq" id="rq_number" required placeholder="Enter RQ Number">
                     </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" name="notes" id="rq_notes" rows="2" placeholder="Optional notes..."></textarea>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -562,6 +567,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('rq_job_id').value = jobId;
         document.getElementById('rq_job_display').textContent = jobNumber;
         document.getElementById('rq_number').value = '';
+        document.getElementById('rq_notes').value = '';
         rqModal.show();
     }
 
