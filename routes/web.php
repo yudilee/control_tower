@@ -179,6 +179,7 @@ Route::middleware('auth')->group(function () {
         });
         Route::resource('part-orders', \App\Http\Controllers\PartOrderController::class);
         Route::post('part-orders/{partOrder}/status', [\App\Http\Controllers\PartOrderController::class, 'updateStatus'])->name('part-orders.update-status');
+        Route::post('part-orders/create-from-job', [\App\Http\Controllers\PartOrderController::class, 'createFromJob'])->name('part-orders.create-from-job');
 
         // Imports
         Route::prefix('imports')->name('imports.')->group(function () {

@@ -34,7 +34,8 @@ class PartOrder extends Model
     ];
 
     // Status constants - workflow order
-    const STATUS_PENDING = 'pending';     // RQ created, waiting to order from supplier
+    const STATUS_PENDING = 'pending';     // Job needs parts, waiting to open RQ
+    const STATUS_BUKA_RQ = 'buka_rq';     // RQ opened, waiting to order from supplier
     const STATUS_ORDERED = 'ordered';     // Order placed with supplier (has no_order_part)
     const STATUS_CONFIRMED = 'confirmed'; // Supplier confirmed the order
     const STATUS_SHIPPED = 'shipped';     // Parts shipped
@@ -49,6 +50,7 @@ class PartOrder extends Model
     {
         return [
             self::STATUS_PENDING => ['label' => 'Pending', 'color' => '#f59e0b', 'icon' => 'bi-hourglass-split'],
+            self::STATUS_BUKA_RQ => ['label' => 'Buka RQ', 'color' => '#06b6d4', 'icon' => 'bi-file-plus'],
             self::STATUS_ORDERED => ['label' => 'Ordered', 'color' => '#6b7280', 'icon' => 'bi-cart'],
             self::STATUS_CONFIRMED => ['label' => 'Confirmed', 'color' => '#3b82f6', 'icon' => 'bi-check-circle'],
             self::STATUS_SHIPPED => ['label' => 'Shipped', 'color' => '#8b5cf6', 'icon' => 'bi-truck'],

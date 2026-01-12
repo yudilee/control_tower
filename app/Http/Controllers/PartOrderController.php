@@ -11,23 +11,53 @@ class PartOrderController extends Controller
 {
     /**
      * Display Kanban board for parts tracking
+     * 
+     * Pending column shows Jobs that need parts (not PartOrders).
+     * Other columns (Buka RQ → Received) show PartOrders.
      */
     public function kanban(Request $request)
     {
         $statuses = PartOrder::getStatuses();
         
-        // Build base query with job relationship
+        // Pending column: Jobs with need_part=true AND uninvoiced
+        // These are jobs waiting to have an RQ opened
+        $pendingJobsQuery = Job::where('need_part', true)
+            ->where('status', '!=', 'invoiced')
+            ->with(['partOrders' => function($q) {
+                $q->select('job_id', 'status');
+            }]);
+        
+        // Apply filters to pending jobs
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $pendingJobsQuery->where(function($q) use ($search) {
+                $q->where('job_number', 'like', "%{$search}%")
+                  ->orWhere('plate_number', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%");
+            });
+        }
+        
+        if ($request->filled('service_advisor')) {
+            $pendingJobsQuery->where('service_advisor', $request->input('service_advisor'));
+        }
+        
+        if ($request->filled('foreman')) {
+            $pendingJobsQuery->where('foreman', $request->input('foreman'));
+        }
+        
+        $pendingJobs = $pendingJobsQuery->orderBy('job_date', 'desc')->get();
+        
+        // Build base query for PartOrders (Buka RQ → Received columns)
         $baseQuery = PartOrder::with('job')
             ->join('jobs', 'part_orders.job_id', '=', 'jobs.id')
             ->select('part_orders.*');
         
-        // Apply filters
+        // Apply filters to part orders
         if ($request->filled('search')) {
             $search = $request->input('search');
             $baseQuery->where(function($q) use ($search) {
-                $q->where('part_orders.part_name', 'like', "%{$search}%")
-                  ->orWhere('part_orders.part_number', 'like', "%{$search}%")
-                  ->orWhere('part_orders.rq', 'like', "%{$search}%")
+                $q->where('part_orders.rq', 'like', "%{$search}%")
+                  ->orWhere('part_orders.no_order_part', 'like', "%{$search}%")
                   ->orWhere('jobs.job_number', 'like', "%{$search}%")
                   ->orWhere('jobs.plate_number', 'like', "%{$search}%");
             });
@@ -49,31 +79,32 @@ class PartOrderController extends Controller
             $baseQuery->whereDate('part_orders.order_date', '<=', $request->input('date_to'));
         }
         
-        // Get orders grouped by status
+        // Get orders grouped by status (excluding pending - that's for jobs)
         $ordersByStatus = [];
         foreach (array_keys($statuses) as $status) {
+            if ($status === 'pending') continue; // Pending is for jobs, not orders
             $ordersByStatus[$status] = (clone $baseQuery)
                 ->where('part_orders.status', $status)
-                ->orderBy('part_orders.expected_date', 'asc')
+                ->orderBy('part_orders.created_at', 'desc')
                 ->get();
         }
 
-        // Summary counts (unfiltered for dashboard)
+        // Summary counts
         $summary = [
-            'pending' => PartOrder::pending()->count(),
+            'pending' => $pendingJobs->count(),
             'due_soon' => PartOrder::dueSoon(7)->count(),
             'overdue' => PartOrder::overdue()->count(),
         ];
         
         // Get filter options
         $filterOptions = [
-            'service_advisors' => Job::whereHas('partOrders')
+            'service_advisors' => Job::where('need_part', true)
                 ->distinct()
                 ->whereNotNull('service_advisor')
                 ->pluck('service_advisor')
                 ->sort()
                 ->values(),
-            'foremen' => Job::whereHas('partOrders')
+            'foremen' => Job::where('need_part', true)
                 ->distinct()
                 ->whereNotNull('foreman')
                 ->pluck('foreman')
@@ -81,7 +112,7 @@ class PartOrderController extends Controller
                 ->values(),
         ];
 
-        return view('parts.kanban', compact('statuses', 'ordersByStatus', 'summary', 'filterOptions'));
+        return view('parts.kanban', compact('statuses', 'ordersByStatus', 'pendingJobs', 'summary', 'filterOptions'));
     }
 
     /**
@@ -258,28 +289,50 @@ class PartOrderController extends Controller
 
     /**
      * Update status via AJAX (for Kanban drag-drop)
-     */
-    /**
-     * Update status via AJAX (for Kanban drag-drop)
-     * Handles status changes, extra fields, and Work Status automation
+     * Handles status changes, extra fields, and Work Status automation.
+     * Enforces 1-step movement only (e.g., buka_rq → ordered, not buka_rq → received).
      */
     public function updateStatus(Request $request, PartOrder $partOrder): JsonResponse
     {
         $validated = $request->validate([
             'status' => 'required|string|in:' . implode(',', array_keys(PartOrder::getStatuses())),
-            'part_name' => 'nullable|string|max:255',
-            'quantity' => 'nullable|integer|min:1',
-            'rq' => 'nullable|string|max:50',
-            'part_number' => 'nullable|string|max:100',
+            'no_order_part' => 'nullable|string|max:100',
             'order_date' => 'nullable|date',
             'expected_date' => 'nullable|date',
             'notes' => 'nullable|string|max:1000',
-            'remark' => 'nullable|string', // Additional remark for job
+            'remark' => 'nullable|string',
         ]);
 
         $oldStatus = $partOrder->status;
+        $newStatus = $validated['status'];
         
-        // Update PartOrder fields if provided (filter out status/remark to handle separately)
+        // Define allowed transitions (1-step only)
+        $allowedTransitions = [
+            PartOrder::STATUS_BUKA_RQ => [PartOrder::STATUS_ORDERED],
+            PartOrder::STATUS_ORDERED => [PartOrder::STATUS_CONFIRMED],
+            PartOrder::STATUS_CONFIRMED => [PartOrder::STATUS_SHIPPED],
+            PartOrder::STATUS_SHIPPED => [PartOrder::STATUS_RECEIVED],
+        ];
+        
+        // Validate 1-step movement
+        if (!isset($allowedTransitions[$oldStatus]) || !in_array($newStatus, $allowedTransitions[$oldStatus])) {
+            return response()->json([
+                'success' => false,
+                'message' => "Invalid transition: {$oldStatus} → {$newStatus}. Only 1-step movement is allowed.",
+            ], 400);
+        }
+        
+        // Validate required fields when moving to "ordered"
+        if ($newStatus === PartOrder::STATUS_ORDERED) {
+            if (empty($validated['no_order_part']) || empty($validated['order_date']) || empty($validated['expected_date'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order No, Order Date, and Expected Date are required when moving to Ordered.',
+                ], 400);
+            }
+        }
+        
+        // Update PartOrder fields if provided
         $fillable = array_filter($validated, fn($key) => !in_array($key, ['status', 'remark']), ARRAY_FILTER_USE_KEY);
         if (!empty($fillable)) {
             $partOrder->update($fillable);
@@ -287,33 +340,77 @@ class PartOrderController extends Controller
 
         // Update Status
         $partOrder->update([
-            'status' => $validated['status'],
+            'status' => $newStatus,
             'updated_by' => auth()->id(),
-            'received_date' => $validated['status'] === PartOrder::STATUS_RECEIVED ? now()->toDateString() : $partOrder->received_date,
+            'received_date' => $newStatus === PartOrder::STATUS_RECEIVED ? now()->toDateString() : $partOrder->received_date,
         ]);
 
         // Job Work Status Logic
-        if ($validated['status'] === PartOrder::STATUS_ORDERED) {
-             // 5. Buka RQ (Step index 4)
-             $partOrder->job->update(['work_status' => Job::WORK_STATUSES[4] ?? '5. Buka RQ (Qrder Parts)']);
-        } elseif ($validated['status'] === PartOrder::STATUS_RECEIVED) {
-             // 6. Parts Datang (Step index 5)
-             $partOrder->job->update(['work_status' => Job::WORK_STATUSES[5] ?? '6. Parts Datang (Parts Received)']);
+        $job = $partOrder->job;
+        
+        if ($newStatus === PartOrder::STATUS_RECEIVED) {
+            // Check if ALL part orders for this job are received
+            $unreceived = PartOrder::where('job_id', $job->id)
+                ->whereNotIn('status', [PartOrder::STATUS_RECEIVED, PartOrder::STATUS_INSTALLED, PartOrder::STATUS_CANCELLED])
+                ->count();
+            
+            if ($unreceived === 0) {
+                // All parts received - update job work_status to "6. Parts Datang"
+                $job->update(['work_status' => Job::WORK_STATUSES[5] ?? '6. Parts Datang (Parts Received)']);
+            }
         }
         
         // Add Remark if present
         if (!empty($validated['remark'])) {
-             $partOrder->job->addRemark(
-                 "Part Status Update ({$partOrder->part_name} -> {$validated['status']}): " . $validated['remark'],
-                 auth()->user()->name,
-                 auth()->id()
-             );
+            $job->addRemark(
+                "Part Order RQ:{$partOrder->rq} status: {$oldStatus} → {$newStatus}. " . $validated['remark'],
+                auth()->user()->name,
+                auth()->id()
+            );
         }
 
         return response()->json([
             'success' => true,
-            'message' => "Status changed from {$oldStatus} to {$validated['status']}",
+            'message' => "Status changed from {$oldStatus} to {$newStatus}",
             'partOrder' => $partOrder->fresh()->load('job'),
+        ]);
+    }
+
+    /**
+     * Create a new PartOrder from Job (for Kanban: Pending → Buka RQ)
+     * Called when dragging a Job card to the Buka RQ column.
+     */
+    public function createFromJob(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'job_id' => 'required|exists:jobs,id',
+            'rq' => 'required|string|max:50',
+        ]);
+        
+        $job = Job::findOrFail($validated['job_id']);
+        
+        // Create new PartOrder with status buka_rq
+        $partOrder = PartOrder::create([
+            'job_id' => $job->id,
+            'rq' => $validated['rq'],
+            'status' => PartOrder::STATUS_BUKA_RQ,
+            'order_date' => now()->toDateString(),
+            'created_by' => auth()->id(),
+        ]);
+        
+        // Update job work_status to "5. Buka RQ"
+        $job->update(['work_status' => Job::WORK_STATUSES[4] ?? '5. Buka RQ (Qrder Parts)']);
+        
+        // Log activity
+        \App\Models\JobActivity::log($job, 'rq_opened', 
+            "RQ opened: {$validated['rq']}",
+            ['rq' => $validated['rq'], 'part_order_id' => $partOrder->id]
+        );
+        
+        return response()->json([
+            'success' => true,
+            'message' => "RQ {$validated['rq']} created for job {$job->job_number}",
+            'partOrder' => $partOrder->load('job'),
         ]);
     }
 
@@ -336,7 +433,7 @@ class PartOrderController extends Controller
     public function summary(): JsonResponse
     {
         return response()->json([
-            'pending' => PartOrder::pending()->count(),
+            'pending' => Job::where('need_part', true)->where('status', '!=', 'invoiced')->count(),
             'due_soon' => PartOrder::dueSoon(7)->count(),
             'overdue' => PartOrder::overdue()->count(),
         ]);

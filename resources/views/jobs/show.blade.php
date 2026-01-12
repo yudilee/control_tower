@@ -1178,15 +1178,8 @@ if (needPartCheckbox && !needPartCheckbox.hasAttribute('data-ajax-bound')) {
         if (isChecking && !{{ $job->need_part ? 'true' : 'false' }}) {
             e.preventDefault();
             
-            if (!confirm(`Mark job ${jobWip} as "Needs Parts"?\n\nThis will:\n• Set work status to "5. Buka RQ"\n• Create a pending Part Order`)) {
-                this.checked = false;
-                return;
-            }
-            
-            const rqNumber = prompt(`Enter RQ Number for job ${jobWip} (optional):`, '');
-            
-            // User cancelled the prompt
-            if (rqNumber === null) {
+            // Simple confirmation - RQ is entered in Part Tracking Kanban
+            if (!confirm(`Mark job ${jobWip} as "Needs Parts"?\n\nThe job will appear in Part Tracking Kanban where you can open the RQ.`)) {
                 this.checked = false;
                 return;
             }
@@ -1201,13 +1194,11 @@ if (needPartCheckbox && !needPartCheckbox.hasAttribute('data-ajax-bound')) {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({ need_part: true, rq: rqNumber || null })
+                body: JSON.stringify({ need_part: true })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message);
-                    // Reload the page to show updated data
                     window.location.reload();
                 } else {
                     this.checked = false;
