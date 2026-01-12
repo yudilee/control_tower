@@ -261,11 +261,66 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user can edit Kanban (drag/drop work status)
+     * Check if user can edit Kanban (drag/drop work status) in general
+     * SA/Foreman can only edit their assigned jobs (checked separately)
      */
     public function canEditKanban(): bool
     {
-        return $this->hasAnyRole(['admin', 'control_tower', 'finance']);
+        return $this->hasAnyRole(['admin', 'manager', 'control_tower', 'finance', 'sa', 'foreman']);
+    }
+
+    /**
+     * Check if user can update work status for a specific job
+     * Returns array with 'allowed' boolean and 'reason' message
+     */
+    public function canUpdateJobWorkStatus(Job $job): array
+    {
+        // Admin, Manager, and Control Tower can update any job
+        if ($this->hasAnyRole(['admin', 'manager', 'control_tower'])) {
+            return ['allowed' => true, 'reason' => null];
+        }
+
+        // Finance can only update invoiced jobs (and only specific statuses - checked in controller)
+        if ($this->isFinance()) {
+            if ($job->status !== 'invoiced') {
+                return ['allowed' => false, 'reason' => 'Finance can only update work status for invoiced jobs.'];
+            }
+            return ['allowed' => true, 'reason' => null];
+        }
+
+        // Service Advisor can only update their assigned jobs
+        if ($this->role === 'sa') {
+            $linkedSaName = $this->serviceAdvisor?->name;
+            if (!$linkedSaName) {
+                return ['allowed' => false, 'reason' => 'Your user account is not linked to a Service Advisor in master data.'];
+            }
+            if (strtolower(trim($job->service_advisor ?? '')) !== strtolower(trim($linkedSaName))) {
+                return ['allowed' => false, 'reason' => "This job is assigned to SA '{$job->service_advisor}', not you."];
+            }
+            return ['allowed' => true, 'reason' => null];
+        }
+
+        // Foreman can only update their assigned jobs
+        if ($this->role === 'foreman') {
+            $linkedForemanName = $this->foreman?->name;
+            if (!$linkedForemanName) {
+                return ['allowed' => false, 'reason' => 'Your user account is not linked to a Foreman in master data.'];
+            }
+            if (strtolower(trim($job->foreman ?? '')) !== strtolower(trim($linkedForemanName))) {
+                return ['allowed' => false, 'reason' => "This job is assigned to Foreman '{$job->foreman}', not you."];
+            }
+            return ['allowed' => true, 'reason' => null];
+        }
+
+        // Sparepart can only update jobs that need parts
+        if ($this->role === 'sparepart') {
+            if (!$job->need_part) {
+                return ['allowed' => false, 'reason' => 'Sparepart role can only update jobs that require parts.'];
+            }
+            return ['allowed' => true, 'reason' => null];
+        }
+
+        return ['allowed' => false, 'reason' => 'You do not have permission to update work status.'];
     }
 
     /**

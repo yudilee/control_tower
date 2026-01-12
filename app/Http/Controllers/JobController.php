@@ -808,11 +808,20 @@ class JobController extends Controller
     {
         $user = auth()->user();
         
-        // Check if user can edit Kanban
+        // Check if user can edit Kanban in general
         if (!$user->canEditKanban()) {
             return response()->json([
                 'success' => false,
-                'message' => 'You do not have permission to update work status.',
+                'message' => 'Your role does not have permission to update work status.',
+            ], 403);
+        }
+        
+        // Check if user can update THIS specific job
+        $authCheck = $user->canUpdateJobWorkStatus($job);
+        if (!$authCheck['allowed']) {
+            return response()->json([
+                'success' => false,
+                'message' => $authCheck['reason'],
             ], 403);
         }
         
