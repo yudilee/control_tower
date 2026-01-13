@@ -492,7 +492,7 @@ class PartOrderController extends Controller
             'notes' => $validated['notes'] ?? null,
             'status' => PartOrder::STATUS_BUKA_RQ,
             'order_date' => now()->toDateString(),
-            'expected_date' => now()->addDays(7)->toDateString(),
+
             'created_by' => auth()->id(),
         ]);
         
