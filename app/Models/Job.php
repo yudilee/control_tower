@@ -228,7 +228,7 @@ class Job extends Model
     // Key = role, Value = array of status indices that role CANNOT manually change to
     const ROLE_RESTRICTED_STATUSES = [
         'control_tower' => [5, 6, 11, 12, 13],  // Can't change to part tracking or finance statuses
-        'foreman' => [5, 6, 9, 11, 12, 13], // Can't change to part tracking, pemberkasan, or finance (Allowed: Close Job)
+        'foreman' => [5, 6, 11, 12, 13], // Can't change to part tracking or finance (Allowed: Pemberkasan, Close Job)
         'sa' => [5, 6, 9, 10, 11, 12, 13],      // Same as foreman
         'sparepart' => [1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13], // Can only work with 5 and 6 (handled by Part Tracking)
     ];
