@@ -665,7 +665,7 @@
                     <i class="bi bi-gear me-2"></i>Actions
                 </div>
                 <div class="card-body py-3">
-                    @if(auth()->user()->canEdit())
+                    @if(auth()->user()->canEdit() || auth()->user()->hasRole('foreman'))
                     <button type="submit" form="jobForm" class="btn btn-primary btn-sm w-100 mb-2">
                         <i class="bi bi-save me-1"></i>Save Changes
                     </button>
