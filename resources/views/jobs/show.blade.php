@@ -152,10 +152,7 @@
                             <label class="form-label small text-muted mb-0">Chassis Number</label>
                             <input type="text" name="chassis_number" class="form-control form-control-sm" {{ $readonly ? 'disabled' : '' }} value="{{ old('chassis_number', $job->chassis_number) }}">
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label small text-muted mb-0">Unit</label>
-                            <input type="text" name="unit" class="form-control form-control-sm" {{ $readonly ? 'disabled' : '' }} value="{{ old('unit', $job->unit) }}">
-                        </div>
+
                         <div class="col-md-3">
                             <label class="form-label small text-muted mb-0">Type Unit</label>
                             <input type="text" name="type_unit" class="form-control form-control-sm" {{ $readonly ? 'disabled' : '' }} value="{{ old('type_unit', $job->type_unit) }}">

@@ -57,7 +57,7 @@ class UpdateJobRequest extends FormRequest
             'job_card' => 'nullable|string',
             'franchise' => 'required|in:PC,CV',
             'plate_number' => 'required|string',
-            'unit' => 'nullable|string',
+
             'type_unit' => 'nullable|string',
             'account_no' => 'nullable|string',
             'date_first_reg' => 'nullable|date',
