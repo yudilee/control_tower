@@ -225,12 +225,9 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label small text-muted mb-0">Payment Type</label>
-                            <input type="text" name="payment_type" class="form-control form-control-sm" {{ $readonly ? 'disabled' : '' }} value="{{ old('payment_type', $job->payment_type) }}" placeholder="CASH, AR, etc">
-                        </div>
+
                         <div class="col-md-8">
-                            <label class="form-label small text-muted mb-0">Job Description (Operation)</label>
+                            <label class="form-label small text-muted mb-0">Job Description</label>
                             <input type="text" name="job_description" class="form-control form-control-sm" {{ $readonly ? 'disabled' : '' }} value="{{ old('job_description', $job->job_description) }}">
                         </div>
                     </div>

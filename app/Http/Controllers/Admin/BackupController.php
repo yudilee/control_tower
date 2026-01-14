@@ -89,7 +89,7 @@ class BackupController extends Controller
     public function restoreFromFile(Request $request)
     {
         $request->validate([
-            'backup_file' => 'required|file|max:512000', // 500MB max
+            'backup_file' => 'required|file|max:1048576', // 1GB max
         ]);
 
         try {

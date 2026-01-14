@@ -424,7 +424,12 @@ class Job extends Model
             $cacheKey = 'dashboard_broadcast_pending';
             if (!\Illuminate\Support\Facades\Cache::has($cacheKey)) {
                 \Illuminate\Support\Facades\Cache::put($cacheKey, true, 1);
-                event(new \App\Events\DashboardUpdated());
+                try {
+                    event(new \App\Events\DashboardUpdated());
+                } catch (\Exception $e) {
+                    // Ignore broadcast errors (e.g. connection refused in local dev)
+                    \Illuminate\Support\Facades\Log::warning('Dashboard broadcast failed: ' . $e->getMessage());
+                }
             }
         };
 

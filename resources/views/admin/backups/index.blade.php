@@ -2,6 +2,19 @@
 
 @section('content')
 <div class="container-fluid">
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Validation Error:</strong>
+            <ul class="mb-0 mt-1">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <div class="row mb-4">
         <div class="col-md-6">
             <h1 class="h3 mb-0 text-gray-800">Database Backups</h1>
@@ -299,8 +312,8 @@ function deleteSelected() {
                         <strong>Warning:</strong> This will OVERWRITE all current data!
                     </div>
                     <div class="mb-3">
-                        <label for="backup_file" class="form-label">Backup File (.sql.gz)</label>
-                        <input type="file" class="form-control" id="backup_file" name="backup_file" accept=".sql.gz,.gz,.sql" required>
+                        <label for="backup_file" class="form-label">Backup File (.zip, .sql.gz)</label>
+                        <input type="file" class="form-control" id="backup_file" name="backup_file" accept=".zip,.sql.gz,.gz,.sql" required>
                     </div>
                     <p class="text-muted small">Upload a previously downloaded backup file to restore the database.</p>
                 </div>

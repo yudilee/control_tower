@@ -79,10 +79,7 @@
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Payment Type</label>
-                    <input type="text" name="payment_type" class="form-control" value="{{ old('payment_type') }}" placeholder="CASH, AR, etc">
-                </div>
+
                 <div class="col-md-4">
                     <label class="form-label">Job Type</label>
                     <select name="job_type" class="form-select">
@@ -98,28 +95,28 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Job Date</label>
-                    <input type="date" name="job_date" class="form-control" value="{{ old('job_date', date('Y-m-d')) }}">
+                    <input type="date" name="job_date" id="job_date" class="form-control" value="{{ old('job_date', date('Y-m-d')) }}">
+                    <small class="text-muted d-block mt-1">Press <kbd>t</kbd> for today</small>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Promise Date</label>
-                    <input type="date" name="promise_date" class="form-control" value="{{ old('promise_date') }}">
+                    <input type="date" name="promise_date" id="promise_date" class="form-control" value="{{ old('promise_date') }}">
+                    <small class="text-muted d-block mt-1">Press <kbd>t</kbd> for today</small>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">Amount (Rp)</label>
-                    <input type="number" name="estimated_amount" class="form-control" value="{{ old('estimated_amount') }}" step="0.01">
-                </div>
+
                 <div class="col-md-3">
                     <label class="form-label">Work Status</label>
                     <select name="work_status" class="form-select">
                         <option value="">-- Select Status --</option>
+                        @php $firstStatus = \App\Models\Job::WORK_STATUSES[0] ?? ''; @endphp
                         @foreach(\App\Models\Job::getWorkStatusOptions() as $opt)
-                        <option value="{{ $opt->value }}" {{ old('work_status') == $opt->value ? 'selected' : '' }}>{{ $opt->label }}</option>
+                        <option value="{{ $opt->value }}" {{ old('work_status', $firstStatus) == $opt->value ? 'selected' : '' }}>{{ $opt->label }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="col-12">
-                    <label class="form-label">Description</label>
-                    <textarea name="description" class="form-control" rows="2">{{ old('description') }}</textarea>
+                    <label class="form-label">Job Description</label>
+                    <textarea name="job_description" class="form-control" rows="2">{{ old('job_description') }}</textarea>
                 </div>
                 <div class="col-12">
                     <label class="form-label">Initial Remark</label>
@@ -167,13 +164,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         lookupStatus.innerHTML = '<i class="bi bi-check-circle text-success"></i>';
                         plateHint.innerHTML = '<span class="text-success">Vehicle found!</span>';
                         
-                        // Auto-fill unit type if empty
-                        if (!unitTypeInput.value && data.model) {
-                            unitTypeInput.value = data.model;
-                        }
                         // Auto-fill customer name if empty
                         if (!customerNameInput.value && data.customer_name) {
                             customerNameInput.value = data.customer_name;
+                        }
+
+                        // Auto-fill chassis/VIN if empty
+                        const chassisInput = document.querySelector('input[name="chassis_number"]');
+                        if (!chassisInput.value && (data.vin || data.chassis_number)) { 
+                           chassisInput.value = data.vin || data.chassis_number;
                         }
                     } else {
                         lookupStatus.innerHTML = '<i class="bi bi-plus-circle text-info"></i>';
@@ -185,6 +184,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     plateHint.textContent = 'Type plate number to lookup vehicle';
                 });
         }, 500);
+    });
+    
+    // Shortcut for Job Date
+    document.addEventListener('keydown', function(e) {
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+            return; 
+        }
+        
+        // Active on any date input with ID ending in 'date'
+        if (e.target.type === 'date') {
+            if (e.key.toLowerCase() === 't') {
+                e.preventDefault();
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                e.target.value = `${yyyy}-${mm}-${dd}`;
+            }
+        }
     });
 });
 </script>
