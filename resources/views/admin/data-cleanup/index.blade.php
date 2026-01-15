@@ -63,6 +63,16 @@
                 </a>
             </div>
             <div class="card-body">
+                @if(session('info'))
+                <div class="alert alert-info mb-3">
+                    <i class="bi bi-info-circle me-2"></i>{{ session('info') }}
+                </div>
+                @endif
+                @if(session('success') && str_contains(session('success'), 'sanitization'))
+                <div class="alert alert-success mb-3">
+                    <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+                </div>
+                @endif
                 <p class="text-muted small mb-3">
                     Sanitize duplicate customer addresses (e.g., "Street, City, Street, City" → "Street, City").
                     This cleans up data where address fields contain repeated information.
