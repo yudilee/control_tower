@@ -54,6 +54,39 @@
             </div>
         </div>
 
+        <!-- Data Sanitization Card -->
+        <div class="card mb-4 border-info">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-magic me-2"></i>Data Sanitization (Fix Duplicate Data)</span>
+                <a href="{{ route('admin.data-cleanup.sanitize-history') }}" class="btn btn-sm btn-light">
+                    <i class="bi bi-clock-history me-1"></i>View History
+                </a>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    Sanitize duplicate customer addresses (e.g., "Street, City, Street, City" → "Street, City").
+                    This cleans up data where address fields contain repeated information.
+                </p>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <form action="{{ route('admin.data-cleanup.sanitize-addresses') }}" method="POST" class="d-inline">
+                            @csrf
+                            <input type="hidden" name="dry_run" value="1">
+                            <button type="submit" class="btn btn-outline-info me-2">
+                                <i class="bi bi-search me-1"></i>Preview Changes
+                            </button>
+                        </form>
+                        <form action="{{ route('admin.data-cleanup.sanitize-addresses') }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-info" onclick="return confirm('This will sanitize all customer addresses. Continue?')">
+                                <i class="bi bi-magic me-1"></i>Run Sanitization
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card border-danger">
             <div class="card-header bg-danger text-white">
                 <i class="bi bi-exclamation-triangle me-2"></i>Warning: This action is irreversible!

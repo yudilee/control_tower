@@ -254,4 +254,155 @@ class DataCleanupController extends Controller
         return redirect()->route('admin.data-cleanup.index')
             ->with('success', "Reassignment complete! Updated {$jobCount} jobs. {$msg}");
     }
+
+    /**
+     * Sanitize duplicate customer addresses
+     */
+    public function sanitizeAddresses(Request $request)
+    {
+        $dryRun = $request->has('dry_run');
+        
+        $customers = \App\Models\Customer::whereNotNull('address')
+            ->orWhereNotNull('address_1')
+            ->get();
+        
+        $updatedCount = 0;
+        $sampleChanges = [];
+        $addressFields = ['address', 'address_1', 'address_2', 'address_3', 'address_4', 'address_5'];
+        
+        foreach ($customers as $customer) {
+            $updated = false;
+            $customerChanges = [];
+            
+            // Check each address field for internal duplication
+            foreach ($addressFields as $field) {
+                $value = $customer->$field;
+                if (empty($value)) continue;
+                
+                $cleaned = $this->deduplicateAddressString($value);
+                
+                if ($cleaned !== $value) {
+                    $customerChanges[] = "{$field}: \"{$value}\" -> \"{$cleaned}\"";
+                    if (!$dryRun) {
+                        $customer->$field = $cleaned;
+                        $updated = true;
+                    }
+                }
+            }
+            
+            // If main address field is populated, check if address_1-5 are substrings
+            $mainAddress = $customer->address ?? $customer->address_1 ?? '';
+            if (!empty($mainAddress)) {
+                $normalizedMain = strtolower($mainAddress);
+                $partsInMain = array_map('trim', explode(',', $normalizedMain));
+                
+                foreach (['address_1', 'address_2', 'address_3', 'address_4', 'address_5'] as $field) {
+                    if ($field === 'address_1' && empty($customer->address)) {
+                        continue;
+                    }
+                    
+                    $value = trim($customer->$field ?? '');
+                    if (empty($value)) continue;
+                    
+                    $normalizedValue = strtolower($value);
+                    
+                    if (strpos($normalizedMain, $normalizedValue) !== false || in_array($normalizedValue, $partsInMain)) {
+                        $customerChanges[] = "Cleared {$field} (duplicate of main address)";
+                        if (!$dryRun) {
+                            $customer->$field = null;
+                            $updated = true;
+                        }
+                    }
+                }
+            }
+            
+            if ($updated && !$dryRun) {
+                $customer->save();
+                $updatedCount++;
+                // Store sample of first 20 changes
+                if (count($sampleChanges) < 20) {
+                    $sampleChanges[] = [
+                        'customer_id' => $customer->id,
+                        'name' => $customer->name,
+                        'changes' => $customerChanges,
+                    ];
+                }
+            } elseif (!empty($customerChanges)) {
+                $updatedCount++;
+                if (count($sampleChanges) < 20) {
+                    $sampleChanges[] = [
+                        'customer_id' => $customer->id,
+                        'name' => $customer->name,
+                        'changes' => $customerChanges,
+                    ];
+                }
+            }
+        }
+        
+        if ($dryRun) {
+            return redirect()->route('admin.data-cleanup.index')
+                ->with('info', "DRY RUN: Would sanitize {$updatedCount} customer addresses. No changes made.")
+                ->with('sample_changes', $sampleChanges);
+        }
+        
+        // Log the sanitization
+        \App\Models\DataSanitizeLog::create([
+            'type' => 'customer_address',
+            'records_affected' => $updatedCount,
+            'details' => $sampleChanges,
+            'run_by' => auth()->user()->name ?? 'System',
+        ]);
+        
+        return redirect()->route('admin.data-cleanup.index')
+            ->with('success', "Address sanitization complete! Cleaned {$updatedCount} customer records.");
+    }
+
+    /**
+     * Show sanitize history
+     */
+    public function sanitizeHistory()
+    {
+        $logs = \App\Models\DataSanitizeLog::orderByDesc('created_at')->paginate(20);
+        return view('admin.data-cleanup.sanitize-history', compact('logs'));
+    }
+
+    /**
+     * Helper: Deduplicate address string
+     */
+    private function deduplicateAddressString(string $address): string
+    {
+        $parts = array_map('trim', explode(',', $address));
+        
+        $count = count($parts);
+        if ($count >= 2 && $count % 2 === 0) {
+            $half = $count / 2;
+            $firstHalf = array_slice($parts, 0, $half);
+            $secondHalf = array_slice($parts, $half);
+            
+            $match = true;
+            for ($i = 0; $i < $half; $i++) {
+                if (strtolower($firstHalf[$i]) !== strtolower($secondHalf[$i])) {
+                    $match = false;
+                    break;
+                }
+            }
+            
+            if ($match) {
+                return implode(', ', $firstHalf);
+            }
+        }
+        
+        $uniqueParts = [];
+        $seenNormalized = [];
+        
+        foreach ($parts as $part) {
+            $normalized = strtolower(trim($part));
+            if (!isset($seenNormalized[$normalized])) {
+                $seenNormalized[$normalized] = true;
+                $uniqueParts[] = $part;
+            }
+        }
+        
+        return implode(', ', $uniqueParts);
+    }
 }
