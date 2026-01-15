@@ -131,27 +131,51 @@ class CustomerController extends Controller
             }
         }
 
-        // Get related vehicles
-        $vehicles = Vehicle::where('customer_name', $customerName)
-            ->withCount('jobs')
-            ->orderBy('plate_number')
-            ->get();
+        // Build query filter - if DMS linked, query by customer_id to get ALL name variations
+        // This matches the aggregation logic in RefreshCustomerSummaries command
+        if ($dmsCustomer) {
+            // Get related vehicles via customer_id (captures all name variations)
+            $vehicles = Vehicle::where('customer_id', $dmsCustomer->id)
+                ->withCount('jobs')
+                ->orderBy('plate_number')
+                ->get();
 
-        // Get related jobs
-        $jobs = Job::where('customer_name', $customerName)
-            ->orderBy('job_date', 'desc')
-            ->paginate(20)
-            ->withQueryString();
+            // Get related jobs via customer_id (captures all name variations)
+            $jobs = Job::where('customer_id', $dmsCustomer->id)
+                ->orderBy('job_date', 'desc')
+                ->paginate(20)
+                ->withQueryString();
 
-        // Summary stats - use inv_ppn_meterai for invoiced jobs
-        $stats = [
-            'total_vehicles' => $vehicles->count(),
-            'total_jobs' => Job::where('customer_name', $customerName)->count(),
-            'uninvoiced_jobs' => Job::where('customer_name', $customerName)->where('status', 'uninvoiced')->count(),
-            'invoiced_jobs' => Job::where('customer_name', $customerName)->where('status', 'invoiced')->count(),
-            'total_sales' => Job::where('customer_name', $customerName)->where('status', 'invoiced')->sum('inv_ppn_meterai') ?? 0,
-            'estimated_sales' => Job::where('customer_name', $customerName)->where('status', 'uninvoiced')->sum('total_sales') ?? 0,
-        ];
+            // Summary stats via customer_id
+            $stats = [
+                'total_vehicles' => $vehicles->count(),
+                'total_jobs' => Job::where('customer_id', $dmsCustomer->id)->count(),
+                'uninvoiced_jobs' => Job::where('customer_id', $dmsCustomer->id)->where('status', 'uninvoiced')->count(),
+                'invoiced_jobs' => Job::where('customer_id', $dmsCustomer->id)->where('status', 'invoiced')->count(),
+                'total_sales' => Job::where('customer_id', $dmsCustomer->id)->where('status', 'invoiced')->sum('inv_ppn_meterai') ?? 0,
+                'estimated_sales' => Job::where('customer_id', $dmsCustomer->id)->where('status', 'uninvoiced')->sum('total_sales') ?? 0,
+            ];
+        } else {
+            // Fallback to name-based query for unlinked customers
+            $vehicles = Vehicle::where('customer_name', $customerName)
+                ->withCount('jobs')
+                ->orderBy('plate_number')
+                ->get();
+
+            $jobs = Job::where('customer_name', $customerName)
+                ->orderBy('job_date', 'desc')
+                ->paginate(20)
+                ->withQueryString();
+
+            $stats = [
+                'total_vehicles' => $vehicles->count(),
+                'total_jobs' => Job::where('customer_name', $customerName)->count(),
+                'uninvoiced_jobs' => Job::where('customer_name', $customerName)->where('status', 'uninvoiced')->count(),
+                'invoiced_jobs' => Job::where('customer_name', $customerName)->where('status', 'invoiced')->count(),
+                'total_sales' => Job::where('customer_name', $customerName)->where('status', 'invoiced')->sum('inv_ppn_meterai') ?? 0,
+                'estimated_sales' => Job::where('customer_name', $customerName)->where('status', 'uninvoiced')->sum('total_sales') ?? 0,
+            ];
+        }
 
         return view('customers.show', [
             'customerName' => $customerName,
