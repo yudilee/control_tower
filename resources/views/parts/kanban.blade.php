@@ -185,9 +185,9 @@
                 </div>
             </div>
             
-            {{-- OTHER COLUMNS - Show PartOrders (6-status flow) --}}
+            {{-- OTHER COLUMNS - Show PartOrders (5-status flow) --}}
             @php
-                $displayStatuses = ['rq_sent', 'processing', 'ordering', 'ready', 'received'];
+                $displayStatuses = ['rq_sent', 'processing', 'ready', 'received'];
             @endphp
             @foreach($displayStatuses as $statusKey)
                 @php $statusInfo = $statuses[$statusKey]; @endphp
