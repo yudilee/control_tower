@@ -326,7 +326,10 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Expected Date <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" name="expected_date" id="od_expected_date" required>
+                            <input type="date" class="form-control date-shortcuts" name="expected_date" id="od_expected_date" required>
+                            <div class="form-text small text-muted">
+                                <kbd>t</kbd> today | <kbd>→</kbd> +1d | <kbd>←</kbd> -1d | <kbd>↑</kbd> +7d | <kbd>↓</kbd> -7d
+                            </div>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Notes</label>
@@ -704,6 +707,46 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Error updating status');
         });
     }
+
+    // Date keyboard shortcuts for fields with .date-shortcuts class
+    document.querySelectorAll('.date-shortcuts').forEach(input => {
+        input.addEventListener('keydown', function(e) {
+            let currentDate = this.value ? new Date(this.value) : new Date();
+            let handled = false;
+            
+            switch(e.key) {
+                case 't':
+                case 'T':
+                    currentDate = new Date();
+                    handled = true;
+                    break;
+                case 'ArrowRight':
+                    currentDate.setDate(currentDate.getDate() + 1);
+                    handled = true;
+                    break;
+                case 'ArrowLeft':
+                    currentDate.setDate(currentDate.getDate() - 1);
+                    handled = true;
+                    break;
+                case 'ArrowUp':
+                    currentDate.setDate(currentDate.getDate() + 7);
+                    handled = true;
+                    break;
+                case 'ArrowDown':
+                    currentDate.setDate(currentDate.getDate() - 7);
+                    handled = true;
+                    break;
+            }
+            
+            if (handled) {
+                e.preventDefault();
+                const year = currentDate.getFullYear();
+                const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+                const day = String(currentDate.getDate()).padStart(2, '0');
+                this.value = `${year}-${month}-${day}`;
+            }
+        });
+    });
 });
 </script>
 @endpush
