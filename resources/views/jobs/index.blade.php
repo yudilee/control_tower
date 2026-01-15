@@ -113,7 +113,7 @@
 <div class="card">
     <div class="card-body p-0">
         <div class="table-responsive" style="max-height: 70vh; overflow: auto;">
-            <table class="table table-hover table-bordered table-sm mb-0" id="dataTable" style="white-space: nowrap;">
+            <table class="table table-hover table-bordered table-sm mb-0" id="dataTable" style="white-space: nowrap; table-layout: fixed;">
                 <thead class="table-dark" style="position: sticky; top: 0; z-index: 10;">
                     @php
                         $storedPrefs = auth()->user()?->column_preferences ?? [];
@@ -574,12 +574,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     table.querySelectorAll('th').forEach(th => {
         const resizer = document.createElement('div');
-        resizer.style.cssText = 'width:5px;height:100%;position:absolute;right:0;top:0;cursor:col-resize;user-select:none;z-index:10;';
+        resizer.className = 'column-resizer';
+        resizer.style.cssText = 'width:8px;height:100%;position:absolute;right:0;top:0;cursor:col-resize;user-select:none;z-index:100;background:transparent;';
+        resizer.addEventListener('mouseenter', () => resizer.style.background = 'rgba(255,255,255,0.3)');
+        resizer.addEventListener('mouseleave', () => resizer.style.background = 'transparent');
         th.appendChild(resizer);
         th.style.position = 'relative';
+        th.style.overflow = 'hidden';
         let startX, startWidth;
-        resizer.addEventListener('mousedown', e => { e.stopPropagation(); startX = e.pageX; startWidth = th.offsetWidth; document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp); });
-        function onMove(e) { th.style.width = (startWidth + e.pageX - startX) + 'px'; }
+        resizer.addEventListener('mousedown', e => { 
+            e.stopPropagation(); 
+            e.preventDefault();
+            startX = e.pageX; 
+            startWidth = th.offsetWidth; 
+            document.addEventListener('mousemove', onMove); 
+            document.addEventListener('mouseup', onUp); 
+        });
+        function onMove(e) { th.style.width = Math.max(50, startWidth + e.pageX - startX) + 'px'; }
         function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
     });
 

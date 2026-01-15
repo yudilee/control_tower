@@ -1,10 +1,11 @@
 @props(['value' => null, 'showIcon' => true, 'showLabel' => true, 'size' => 'normal'])
 
 @php
-    $option = \App\Models\DropdownOption::getOption('work_status', $value);
-    $color = $option?->color ?? 'secondary';
-    $icon = $option?->icon ?? null;
-    $label = $option?->label ?? $value ?? '-';
+    // Use Job model's WORK_STATUS_META for consistent colors across app
+    $meta = \App\Models\Job::getWorkStatusMeta($value ?? '');
+    $color = $meta['color'] ?? 'secondary';
+    $icon = $meta['icon'] ?? null;
+    $label = $meta['label'] ?? $value ?? '-';
     
     $sizeClass = match($size) {
         'sm' => 'badge-sm',
@@ -25,3 +26,4 @@
 @else
 <span class="text-muted">-</span>
 @endif
+

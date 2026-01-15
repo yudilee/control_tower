@@ -198,19 +198,20 @@ class Job extends Model
     ];
 
     // Work Status Display Metadata (labels, icons, colors for UI)
+    // Using distinct colors for all 13 statuses
     const WORK_STATUS_META = [
         '1. Belum diproses (Tunggu Antrian)' => ['label' => '1. Belum diproses', 'icon' => 'inbox', 'color' => 'secondary'],
         '2. Pengerjaan Diagnosa Awal' => ['label' => '2. Diagnosa Awal', 'icon' => 'search', 'color' => 'info'],
         '3. Estimasi (Proses Warranty -> Tips case, Eskulab, Xsp)' => ['label' => '3. Estimasi', 'icon' => 'calculator', 'color' => 'warning'],
         '4. Acc Customer/Warranty' => ['label' => '4. Acc Customer', 'icon' => 'hand-thumbs-up', 'color' => 'success'],
-        '5. Buka RQ (Qrder Parts)' => ['label' => '5. Buka RQ', 'icon' => 'cart', 'color' => 'secondary'],
-        '6. Parts Datang (Parts Received)' => ['label' => '6. Parts Datang', 'icon' => 'box-seam', 'color' => 'primary'],
-        '7. Penjadwalan (Unit dibawa customer)' => ['label' => '7. Penjadwalan', 'icon' => 'calendar-date', 'color' => 'info'],
+        '5. Buka RQ (Qrder Parts)' => ['label' => '5. Buka RQ', 'icon' => 'cart', 'color' => 'purple'],
+        '6. Parts Datang (Parts Received)' => ['label' => '6. Parts Datang', 'icon' => 'box-seam', 'color' => 'indigo'],
+        '7. Penjadwalan (Unit dibawa customer)' => ['label' => '7. Penjadwalan', 'icon' => 'calendar-date', 'color' => 'cyan'],
         '8. Pengerjaan' => ['label' => '8. Pengerjaan', 'icon' => 'tools', 'color' => 'primary'],
-        '9. Pemberkasan (Body Paint/Cash/Warranty)' => ['label' => '9. Pemberkasan', 'icon' => 'folder', 'color' => 'secondary'],
-        '10. Proses Close Job (Pengerjaan selesai)' => ['label' => '10. Proses Close', 'icon' => 'check-lg', 'color' => 'success'],
-        '11. Proses Invoice' => ['label' => '11. Invoice', 'icon' => 'receipt', 'color' => 'info'],
-        '12. Menunggu Pembayaran' => ['label' => '12. Tunggu Bayar', 'icon' => 'hourglass', 'color' => 'warning'],
+        '9. Pemberkasan (Body Paint/Cash/Warranty)' => ['label' => '9. Pemberkasan', 'icon' => 'folder', 'color' => 'orange'],
+        '10. Proses Close Job (Pengerjaan selesai)' => ['label' => '10. Proses Close', 'icon' => 'check-lg', 'color' => 'teal'],
+        '11. Proses Invoice' => ['label' => '11. Invoice', 'icon' => 'receipt', 'color' => 'pink'],
+        '12. Menunggu Pembayaran' => ['label' => '12. Tunggu Bayar', 'icon' => 'hourglass', 'color' => 'danger'],
         '13. Sudah Dibayar' => ['label' => '13. Lunas', 'icon' => 'cash-coin', 'color' => 'success'],
     ];
 
