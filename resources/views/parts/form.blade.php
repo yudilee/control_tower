@@ -60,66 +60,23 @@
                         </div>
                         @endif
 
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="mb-3">
-                                    <label for="part_name" class="form-label">Part Name <span class="text-danger">*</span></label>
-                                    <input type="text" 
-                                           class="form-control @error('part_name') is-invalid @enderror" 
-                                           id="part_name" 
-                                           name="part_name" 
-                                           value="{{ old('part_name', $partOrder->part_name ?? '') }}"
-                                           required>
-                                    @error('part_name')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label for="quantity" class="form-label">Quantity <span class="text-danger">*</span></label>
-                                    <input type="number" 
-                                           class="form-control @error('quantity') is-invalid @enderror" 
-                                           id="quantity" 
-                                           name="quantity" 
-                                           value="{{ old('quantity', $partOrder->quantity ?? 1) }}"
-                                           min="1"
-                                           required>
-                                    @error('quantity')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div>
 
                         <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="part_number" class="form-label">Part Number</label>
-                                    <input type="text" 
-                                           class="form-control @error('part_number') is-invalid @enderror" 
-                                           id="part_number" 
-                                           name="part_number" 
-                                           value="{{ old('part_number', $partOrder->part_number ?? '') }}">
-                                    @error('part_number')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label for="rq" class="form-label">RQ (Requisition)</label>
+                                    <label for="rq" class="form-label">RQ (Requisition) <span class="text-danger">*</span></label>
                                     <input type="text" 
                                            class="form-control @error('rq') is-invalid @enderror" 
                                            id="rq" 
                                            name="rq" 
-                                           value="{{ old('rq', $partOrder->rq ?? '') }}">
+                                           value="{{ old('rq', $partOrder->rq ?? '') }}"
+                                           required>
                                     @error('rq')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="no_order_part" class="form-label">No. Order Part</label>
                                     <input type="text" 
@@ -133,6 +90,7 @@
                                 </div>
                             </div>
                         </div>
+
 
                         <div class="row">
                             <div class="col-md-4">
