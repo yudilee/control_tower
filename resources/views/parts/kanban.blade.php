@@ -432,6 +432,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const permissions = {
         canOpenRq: {{ $permissions['canOpenRq'] ? 'true' : 'false' }},
         canUpdateStatus: {{ $permissions['canUpdateStatus'] ? 'true' : 'false' }},
+        canReceivePart: {{ in_array($permissions['userRole'], ['admin', 'sparepart', 'foreman', 'control_tower']) ? 'true' : 'false' }},
         userRole: '{{ $permissions['userRole'] }}',
         userForeman: {!! json_encode($permissions['userForeman']) !!}
     };
@@ -547,17 +548,28 @@ document.addEventListener('DOMContentLoaded', function() {
             } 
             // Permission check for Order status updates
             else if (draggedType === 'order') {
-                if (!permissions.canUpdateStatus) {
-                    alert('You do not have permission to update part order status. Only Sparepart and Admin can do this.');
-                    return;
-                }
-                
-                if (targetStatus === 'ordering') {
-                    // Processing → Ordering: Show order details modal (supplier order)
-                    showOrderModal(draggedCard.dataset.orderId, draggedCard);
+                // Special case: Ready → Received can be done by foreman/control_tower too
+                if (originalStatus === 'ready' && targetStatus === 'received') {
+                    if (!permissions.canReceivePart) {
+                        alert('You do not have permission to receive parts.');
+                        return;
+                    }
+                    // Show remark modal with required comment
+                    showRemarkModal(draggedCard.dataset.orderId, targetStatus, true);
                 } else {
-                    // Other transitions: Show remark modal
-                    showRemarkModal(draggedCard.dataset.orderId, targetStatus);
+                    // Other transitions: sparepart/admin only
+                    if (!permissions.canUpdateStatus) {
+                        alert('You do not have permission to update part order status. Only Sparepart and Admin can do this.');
+                        return;
+                    }
+                    
+                    if (targetStatus === 'ordering') {
+                        // Processing → Ordering: Show order details modal (supplier order)
+                        showOrderModal(draggedCard.dataset.orderId, draggedCard);
+                    } else {
+                        // Other transitions: Show remark modal
+                        showRemarkModal(draggedCard.dataset.orderId, targetStatus, false);
+                    }
                 }
             }
         });
@@ -580,10 +592,20 @@ document.addEventListener('DOMContentLoaded', function() {
         orderDetailModal.show();
     }
 
-    function showRemarkModal(orderId, status) {
+    function showRemarkModal(orderId, status, requireRemark = false) {
         document.getElementById('rm_order_id').value = orderId;
         document.getElementById('rm_status').value = status;
         document.getElementById('rm_status_display').textContent = statusLabels[status] || status;
+        
+        // Set remark as required if specified
+        const remarkField = document.querySelector('#remarkForm textarea[name="remark"]');
+        if (remarkField) {
+            remarkField.required = requireRemark;
+            remarkField.placeholder = requireRemark 
+                ? 'Please add a comment about receiving this part (required)...'
+                : 'Add a remark about this status change...';
+        }
+        
         remarkModal.show();
     }
 
@@ -642,6 +664,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Save Remark (Other transitions)
     document.getElementById('saveRemark').addEventListener('click', function() {
         const form = document.getElementById('remarkForm');
+        
+        // Check form validity (handles required remark)
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
         const orderId = data.order_id;

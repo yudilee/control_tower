@@ -353,9 +353,23 @@ class PartOrderController extends Controller
     public function updateStatus(Request $request, PartOrder $partOrder): JsonResponse
     {
         $user = auth()->user();
+        $oldStatus = $partOrder->status;
+        $newStatus = $request->input('status');
         
-        // Permission check: only sparepart and admin can update status
-        if (!in_array($user->role, ['admin', 'sparepart'])) {
+        // Permission check based on transition
+        // Ready → Received: can be done by foreman, control_tower, sparepart, admin (workshop receives the part)
+        // Other transitions: sparepart and admin only
+        $canUpdate = false;
+        
+        if ($oldStatus === PartOrder::STATUS_READY && $newStatus === PartOrder::STATUS_RECEIVED) {
+            // Workshop (foreman/control_tower) can mark as received
+            $canUpdate = in_array($user->role, ['admin', 'sparepart', 'foreman', 'control_tower']);
+        } else {
+            // Other transitions: sparepart/admin only
+            $canUpdate = in_array($user->role, ['admin', 'sparepart']);
+        }
+        
+        if (!$canUpdate) {
             return response()->json([
                 'success' => false,
                 'message' => 'You do not have permission to update part order status.',
