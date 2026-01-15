@@ -66,11 +66,11 @@
                                 <div class="mb-3">
                                     <label for="rq" class="form-label">RQ (Requisition) <span class="text-danger">*</span></label>
                                     <input type="text" 
-                                           class="form-control @error('rq') is-invalid @enderror" 
+                                           class="form-control {{ isset($partOrder) ? 'bg-light' : '' }} @error('rq') is-invalid @enderror" 
                                            id="rq" 
                                            name="rq" 
                                            value="{{ old('rq', $partOrder->rq ?? '') }}"
-                                           required>
+                                           {{ isset($partOrder) ? 'readonly' : 'required' }}>
                                     @error('rq')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -147,18 +147,19 @@
 
                         @if(isset($partOrder))
                         <div class="mb-3">
-                            <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
-                            <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
-                                @foreach($statuses as $key => $info)
-                                    <option value="{{ $key }}" {{ old('status', $partOrder->status) === $key ? 'selected' : '' }}>
-                                        {{ $info['label'] }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('status')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <label class="form-label">Status</label>
+                            <div>
+                                <span class="badge" style="background-color: {{ $partOrder->status_color }}; font-size: 0.9rem;">
+                                    {{ $partOrder->status_label }}
+                                </span>
+                                <span class="text-muted small ms-2">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Change status via <a href="{{ route('part-orders.kanban') }}" class="text-decoration-none">Kanban Board</a>
+                                </span>
+                            </div>
                         </div>
+                        @else
+                            <input type="hidden" name="status" value="pending">
                         @endif
 
                         <div class="mb-3">
@@ -171,6 +172,58 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
+
+                        @if(isset($partOrder))
+                        <div class="row mt-4 pt-3 border-top">
+                            <div class="col-12">
+                                <h5 class="mb-3 h6 fw-bold text-uppercase text-muted"><i class="bi bi-chat-dots me-2"></i>Activity & Comments</h5>
+                                
+                                <div class="card bg-light border-0 mb-3">
+                                    <div class="card-body p-3" style="max-height: 400px; overflow-y: auto;">
+                                        @php
+                                            $rqRef = '[RQ:'.$partOrder->rq.']';
+                                            $rqRemarks = $partOrder->job->remarks->filter(function($r) use ($rqRef) {
+                                                return str_contains($r->remark_text, $rqRef);
+                                            });
+                                        @endphp
+
+                                        @forelse($rqRemarks as $remark)
+                                            <div class="d-flex mb-3">
+                                                <div class="flex-shrink-0">
+                                                    <div class="rounded-circle bg-white border d-flex align-items-center justify-content-center text-primary fw-bold" 
+                                                         style="width: 32px; height: 32px; font-size: 12px;">
+                                                        {{ strtoupper(substr($remark->created_by ?? 'S', 0, 1)) }}
+                                                    </div>
+                                                </div>
+                                                <div class="flex-grow-1 ms-3">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <strong class="small text-dark">{{ $remark->created_by ?? 'System' }}</strong>
+                                                        <span class="text-muted" style="font-size: 11px;">
+                                                            {{ $remark->created_at->format('d M H:i') }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="p-2 bg-white rounded border-0 shadow-sm small text-dark">
+                                                        {{ str_replace($rqRef, '', $remark->remark_text) }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @empty
+                                            <div class="text-center text-muted small py-4">
+                                                <i class="bi bi-chat-square-dots d-block mb-2 fs-4"></i>
+                                                No comments for this RQ yet.
+                                            </div>
+                                        @endforelse
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="new_comment" class="form-label small fw-bold">Add Comment</label>
+                                    <textarea name="new_comment" id="new_comment" class="form-control" rows="2" placeholder="Type a comment..."></textarea>
+                                    <div class="form-text small">This comment will be visible on the Job page as well.</div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
 
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn btn-primary">

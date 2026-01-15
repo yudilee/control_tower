@@ -233,9 +233,8 @@ class PartOrderController extends Controller
     {
         $validated = $request->validate([
             'job_id' => 'required|exists:jobs,id',
-            'part_name' => 'required|string|max:255',
-            'part_number' => 'nullable|string|max:100',
-            'quantity' => 'required|integer|min:1',
+            'rq' => 'required|string|unique:part_orders,rq',
+            'no_order_part' => 'nullable|string|max:100',
             'order_date' => 'required|date',
             'expected_date' => 'required|date|after_or_equal:order_date',
             'notes' => 'nullable|string|max:1000',
@@ -277,7 +276,9 @@ class PartOrderController extends Controller
      */
     public function edit(PartOrder $partOrder)
     {
-        $partOrder->load('job');
+        $partOrder->load(['job.remarks' => function($q) {
+            $q->orderBy('created_at', 'desc');
+        }]);
         $statuses = PartOrder::getStatuses();
         return view('parts.form', compact('partOrder', 'statuses'));
     }
@@ -288,24 +289,39 @@ class PartOrderController extends Controller
     public function update(Request $request, PartOrder $partOrder)
     {
         $validated = $request->validate([
-            'part_name' => 'required|string|max:255',
-            'part_number' => 'nullable|string|max:100',
-            'quantity' => 'required|integer|min:1',
+            'rq' => 'required|string|unique:part_orders,rq,'.$partOrder->id,
+            'no_order_part' => 'nullable|string|max:100',
             'order_date' => 'required|date',
-            'expected_date' => 'required|date|after_or_equal:order_date',
+            'expected_date' => 'required|date',
             'received_date' => 'nullable|date',
             'notes' => 'nullable|string|max:1000',
-            'status' => 'required|string',
+            'new_comment' => 'nullable|string',
         ]);
 
-        $validated['updated_by'] = auth()->id();
+        // Status is not editable via form anymore, only via Kanban
+        
+        $partOrder->update([
+            'rq' => $validated['rq'],
+            'no_order_part' => $validated['no_order_part'],
+            'order_date' => $validated['order_date'],
+            'expected_date' => $validated['expected_date'],
+            'received_date' => $validated['received_date'] ?? $partOrder->received_date,
+            'notes' => $validated['notes'],
+            'updated_by' => auth()->id(),
+        ]);
 
-        // Auto-set received_date when status changes to received
-        if ($validated['status'] === PartOrder::STATUS_RECEIVED && !$validated['received_date']) {
-            $validated['received_date'] = now()->toDateString();
+        // Auto-set received_date when status changes to received (if it were passed which it isn't here but keeping logic safe)
+        // (This logic is mainly handled in updateStatus for Kanban)
+
+        // Handle New Comment
+        if (!empty($validated['new_comment'])) {
+            $user = auth()->user();
+            // Prefix comment with [RQ:{number}]
+            $commentText = "[RQ:{$partOrder->rq}] " . $validated['new_comment'];
+            
+            // Add remark to Job
+            $partOrder->job->addRemark($commentText, $user->name, $user->id);
         }
-
-        $partOrder->update($validated);
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -315,7 +331,7 @@ class PartOrderController extends Controller
             ]);
         }
 
-        return redirect()->route('jobs.show', $partOrder->job_id)
+        return redirect()->route('part-orders.edit', $partOrder->id)
             ->with('success', 'Part order updated successfully.');
     }
 
@@ -453,7 +469,7 @@ class PartOrderController extends Controller
         // Add Remark if present
         if (!empty($validated['remark'])) {
             $job->addRemark(
-                "Part Order RQ:{$partOrder->rq} status: {$oldStatus} → {$newStatus}. " . $validated['remark'],
+                "[RQ:{$partOrder->rq}] Status: {$oldStatus} → {$newStatus}. " . $validated['remark'],
                 auth()->user()->name,
                 auth()->id()
             );
