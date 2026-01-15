@@ -131,29 +131,74 @@ class CustomerController extends Controller
             }
         }
 
-        // Build query filter - if DMS linked, query by customer_id to get ALL name variations
+        // Build query filter - if DMS linked, query by customer_id OR name variations
         // This matches the aggregation logic in RefreshCustomerSummaries command
         if ($dmsCustomer) {
-            // Get related vehicles via customer_id (captures all name variations)
-            $vehicles = Vehicle::where('customer_id', $dmsCustomer->id)
+            // Build list of all name variations that map to this DMS customer
+            // This replicates the exact aggregation logic from RefreshCustomerSummaries
+            $nameVariations = [];
+            
+            // Main name from DMS customer
+            $dmsName = $dmsCustomer->title 
+                ? ($dmsCustomer->title . ' ' . $dmsCustomer->name) 
+                : $dmsCustomer->name;
+            $nameVariations[] = $dmsName;
+            $nameVariations[] = $dmsCustomer->name; // Without title
+            
+            // Get all aliases for this customer
+            $aliases = \App\Models\CustomerAlias::where('customer_id', $dmsCustomer->id)->pluck('alias_name')->toArray();
+            $nameVariations = array_merge($nameVariations, $aliases);
+            
+            // Get names from vehicles linked to this customer_id
+            $vehicleNames = Vehicle::where('customer_id', $dmsCustomer->id)
+                ->whereNotNull('customer_name')
+                ->distinct()
+                ->pluck('customer_name')
+                ->toArray();
+            $nameVariations = array_merge($nameVariations, $vehicleNames);
+            
+            // Get names from jobs linked to this customer_id  
+            $jobNames = Job::where('customer_id', $dmsCustomer->id)
+                ->whereNotNull('customer_name')
+                ->distinct()
+                ->pluck('customer_name')
+                ->toArray();
+            $nameVariations = array_merge($nameVariations, $jobNames);
+            
+            // Deduplicate
+            $nameVariations = array_unique(array_filter($nameVariations));
+            
+            // Query vehicles by customer_id OR customer_name in variations
+            $vehicles = Vehicle::where(function($q) use ($dmsCustomer, $nameVariations) {
+                    $q->where('customer_id', $dmsCustomer->id)
+                      ->orWhereIn('customer_name', $nameVariations);
+                })
                 ->withCount('jobs')
                 ->orderBy('plate_number')
                 ->get();
 
-            // Get related jobs via customer_id (captures all name variations)
-            $jobs = Job::where('customer_id', $dmsCustomer->id)
+            // Query jobs by customer_id OR customer_name in variations
+            $jobs = Job::where(function($q) use ($dmsCustomer, $nameVariations) {
+                    $q->where('customer_id', $dmsCustomer->id)
+                      ->orWhereIn('customer_name', $nameVariations);
+                })
                 ->orderBy('job_date', 'desc')
                 ->paginate(20)
                 ->withQueryString();
 
-            // Summary stats via customer_id
+            // Build stats query helper
+            $jobsQuery = Job::where(function($q) use ($dmsCustomer, $nameVariations) {
+                $q->where('customer_id', $dmsCustomer->id)
+                  ->orWhereIn('customer_name', $nameVariations);
+            });
+            
             $stats = [
                 'total_vehicles' => $vehicles->count(),
-                'total_jobs' => Job::where('customer_id', $dmsCustomer->id)->count(),
-                'uninvoiced_jobs' => Job::where('customer_id', $dmsCustomer->id)->where('status', 'uninvoiced')->count(),
-                'invoiced_jobs' => Job::where('customer_id', $dmsCustomer->id)->where('status', 'invoiced')->count(),
-                'total_sales' => Job::where('customer_id', $dmsCustomer->id)->where('status', 'invoiced')->sum('inv_ppn_meterai') ?? 0,
-                'estimated_sales' => Job::where('customer_id', $dmsCustomer->id)->where('status', 'uninvoiced')->sum('total_sales') ?? 0,
+                'total_jobs' => (clone $jobsQuery)->count(),
+                'uninvoiced_jobs' => (clone $jobsQuery)->where('status', 'uninvoiced')->count(),
+                'invoiced_jobs' => (clone $jobsQuery)->where('status', 'invoiced')->count(),
+                'total_sales' => (clone $jobsQuery)->where('status', 'invoiced')->sum('inv_ppn_meterai') ?? 0,
+                'estimated_sales' => (clone $jobsQuery)->where('status', 'uninvoiced')->sum('total_sales') ?? 0,
             ];
         } else {
             // Fallback to name-based query for unlinked customers
