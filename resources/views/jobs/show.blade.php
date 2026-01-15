@@ -170,8 +170,15 @@
                             <input type="text" name="customer_name" class="form-control form-control-sm" {{ $readonly ? 'disabled' : '' }} value="{{ old('customer_name', $job->customer_name) }}">
                         </div>
                         <div class="col-12">
-                            <label class="form-label small text-muted mb-0">Customer Address</label>
-                            <textarea name="customer_address" class="form-control form-control-sm" {{ $readonly ? 'disabled' : '' }} rows="3" style="resize: vertical;">{{ old('customer_address', $job->customer_address) }}</textarea>
+                            <label class="form-label small text-muted mb-0">
+                                Customer Address
+                                @if(!$readonly)
+                                <button type="button" class="btn btn-outline-primary btn-sm ms-2 py-0 px-2" id="lookupAddressBtn" title="Lookup address from customer database">
+                                    <i class="bi bi-search"></i> Lookup
+                                </button>
+                                @endif
+                            </label>
+                            <textarea name="customer_address" id="customer_address" class="form-control form-control-sm" {{ $readonly ? 'disabled' : '' }} rows="3" style="resize: vertical;">{{ old('customer_address', $job->customer_address) }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -749,6 +756,55 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Customer Address Lookup
+    const lookupBtn = document.getElementById('lookupAddressBtn');
+    if (lookupBtn) {
+        lookupBtn.addEventListener('click', async function() {
+            const btn = this;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Searching...';
+            btn.disabled = true;
+            
+            try {
+                // Get current form values
+                const customerName = document.querySelector('input[name="customer_name"]')?.value || '';
+                const plateNumber = document.querySelector('input[name="plate_number"]')?.value || '';
+                const accountNo = document.querySelector('input[name="account_no"]')?.value || '';
+                
+                // Build query params
+                const params = new URLSearchParams();
+                if (accountNo) params.append('customer_id', accountNo);
+                if (customerName) params.append('customer_name', customerName);
+                if (plateNumber) params.append('plate', plateNumber);
+                
+                const response = await fetch('/api/customers/lookup-address?' + params.toString());
+                const data = await response.json();
+                
+                if (data.found && data.address) {
+                    document.getElementById('customer_address').value = data.address;
+                    // Visual feedback
+                    btn.innerHTML = '<i class="bi bi-check"></i> Found!';
+                    btn.classList.remove('btn-outline-primary');
+                    btn.classList.add('btn-success');
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.classList.remove('btn-success');
+                        btn.classList.add('btn-outline-primary');
+                    }, 2000);
+                } else {
+                    alert('No address found for this customer. Try filling in Customer Name or Account No first.');
+                    btn.innerHTML = originalText;
+                }
+            } catch (err) {
+                console.error('Lookup error:', err);
+                alert('Error looking up address: ' + err.message);
+                btn.innerHTML = originalText;
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    }
+
     const form = document.getElementById('inlineCommentForm');
     if (!form) return;
 
