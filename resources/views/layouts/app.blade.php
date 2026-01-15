@@ -1093,7 +1093,11 @@
             
             // Get VAPID public key from server
             const response = await fetch('/push/vapid-public-key');
-            const { publicKey } = await response.json();
+            if (!response.ok) {
+                throw new Error('Server returned ' + response.status);
+            }
+            const data = await response.json();
+            const publicKey = data.publicKey;
             
             if (!publicKey) {
                 console.log('[Push] VAPID key not configured');
@@ -1112,7 +1116,7 @@
             console.log('[Push] Subscribed:', subscription.endpoint);
             
             // Send subscription to server
-            await fetch('/push/subscribe', {
+            const saveResponse = await fetch('/push/subscribe', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1120,6 +1124,10 @@
                 },
                 body: JSON.stringify(subscription.toJSON()),
             });
+            
+            if (!saveResponse.ok) {
+                throw new Error('Failed to save subscription: ' + saveResponse.status);
+            }
             
             console.log('[Push] Subscription saved to server');
             
