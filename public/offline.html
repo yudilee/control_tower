@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,14 +15,16 @@
             align-items: center;
             justify-content: center;
         }
+
         .offline-card {
             background: white;
             border-radius: 20px;
             padding: 3rem;
             text-align: center;
             max-width: 400px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
+
         .offline-icon {
             font-size: 5rem;
             color: #6c757d;
@@ -29,17 +32,91 @@
         }
     </style>
 </head>
+
 <body>
     <div class="offline-card">
-        <i class="bi bi-wifi-off offline-icon"></i>
-        <h2 class="mb-3">You're Offline</h2>
+        <div class="mb-4">
+            <!-- Status Indicator -->
+            <span id="status-badge" class="badge bg-secondary mb-3">Checking...</span>
+            <i class="bi bi-wifi-off offline-icon d-block"></i>
+        </div>
+
+        <h2 class="mb-3">Connection Lost</h2>
         <p class="text-muted mb-4">
-            It looks like you've lost your internet connection. 
-            Please check your connection and try again.
+            We can't reach the server. This might be due to poor internet or a server issue.
         </p>
-        <button onclick="window.location.reload()" class="btn btn-primary btn-lg">
-            <i class="bi bi-arrow-clockwise me-2"></i>Try Again
-        </button>
+
+        <div class="d-grid gap-2">
+            <button onclick="checkConnection()" class="btn btn-primary btn-lg">
+                <i class="bi bi-arrow-clockwise me-2"></i>Try Again
+            </button>
+
+            <button onclick="hardReset()" class="btn btn-outline-danger">
+                <i class="bi bi-shield-x me-2"></i>Reset App (Fix Stuck)
+            </button>
+        </div>
+
+        <div id="debug-info" class="mt-3 small text-muted font-monospace" style="font-size: 0.7rem; opacity: 0.7;">
+        </div>
     </div>
+
+    <script>
+        function updateStatus() {
+            const statusBadge = document.getElementById('status-badge');
+            const debugInfo = document.getElementById('debug-info');
+            
+            if (navigator.onLine) {
+                statusBadge.className = 'badge bg-success mb-3';
+                statusBadge.textContent = 'Browser Online';
+                debugInfo.textContent = 'Browser has network, but server is unreachable.';
+            } else {
+                statusBadge.className = 'badge bg-danger mb-3';
+                statusBadge.textContent = 'Device Offline';
+                debugInfo.textContent = 'Device has no network connection.';
+            }
+        }
+
+        async function checkConnection() {
+            const btn = document.querySelector('.btn-primary');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Checking...';
+            btn.disabled = true;
+            
+            try {
+                // Try a simple head request with cache busting
+                await fetch('/?t=' + new Date().getTime(), { method: 'HEAD', cache: 'no-store' });
+                window.location.reload();
+            } catch (e) {
+                updateStatus();
+                btn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>Try Again';
+                btn.disabled = false;
+                document.getElementById('debug-info').textContent += ' (' + e.message + ')';
+            }
+        }
+
+        async function hardReset() {
+            if (!confirm('This will reset the app cache and reload. Continue?')) return;
+            
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let registration of registrations) {
+                    await registration.unregister();
+                }
+            }
+            
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                for (const key of keys) {
+                    await caches.delete(key);
+                }
+            }
+            
+            window.location.reload(true);
+        }
+
+        window.addEventListener('online', updateStatus);
+        window.addEventListener('offline', updateStatus);
+        updateStatus();
+    </script>
 </body>
+
 </html>
