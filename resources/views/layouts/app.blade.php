@@ -169,7 +169,7 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('jobs.kanban') ? 'active' : '' }}" href="{{ route('jobs.kanban') }}">
-                            <i class="bi bi-kanban"></i> Kanban Board
+                            <i class="bi bi-kanban"></i> Job Kanban
                         </a>
                     </li>
                 </div>
@@ -214,7 +214,7 @@
                 <div class="collapse {{ $isPartsActive ? 'show' : '' }}" id="partsMenu">
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('parts.kanban') ? 'active' : '' }}" href="{{ route('parts.kanban') }}">
-                            <i class="bi bi-kanban"></i> Kanban Board
+                            <i class="bi bi-kanban"></i> Parts Kanban
                         </a>
                     </li>
                     <li class="nav-item">

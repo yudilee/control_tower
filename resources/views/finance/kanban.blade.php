@@ -144,6 +144,12 @@
                     {{ isset($invoicesByStatus[$statusKey]) ? $invoicesByStatus[$statusKey]->count() : 0 }}
                 </span>
             </div>
+            <div class="kanban-search px-2 py-1">
+                <input type="text" class="form-control form-control-sm column-search" 
+                       placeholder="Search..." 
+                       data-column="{{ $statusKey }}"
+                       onkeyup="filterColumn(this)">
+            </div>
             <div class="kanban-body" data-status="{{ $statusKey }}">
                 @forelse($invoicesByStatus[$statusKey] ?? [] as $invoice)
                     <div class="kanban-card {{ $statusKey === 'credit_note' ? 'border-start border-danger border-3' : '' }}" 
@@ -365,6 +371,19 @@
 .kanban-column[data-color="info"] .kanban-header { background: linear-gradient(135deg, #0dcaf020, #0dcaf040); }
 .kanban-column[data-color="success"] .kanban-header { background: linear-gradient(135deg, #19875420, #19875440); }
 .kanban-column[data-color="danger"] .kanban-header { background: linear-gradient(135deg, #dc354520, #dc354540); }
+
+/* Search input in column */
+.kanban-search {
+    background: var(--bs-tertiary-bg);
+    border-bottom: 1px solid var(--bs-border-color);
+}
+.kanban-search input {
+    font-size: 0.8rem;
+    background: var(--bs-body-bg);
+}
+.kanban-card.hidden {
+    display: none !important;
+}
 </style>
 @endpush
 
@@ -530,6 +549,42 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Filter cards in a column by search text
+function filterColumn(input) {
+    const search = input.value.toLowerCase().trim();
+    const columnId = input.dataset.column;
+    const column = document.querySelector(`.kanban-body[data-status="${columnId}"]`);
+    
+    if (!column) return;
+    
+    const cards = column.querySelectorAll(".kanban-card");
+    let visibleCount = 0;
+    
+    cards.forEach(card => {
+        const invoiceNumber = card.querySelector("h6")?.textContent?.toLowerCase() || "";
+        const jobNumber = card.textContent?.toLowerCase() || "";
+        
+        const matches = invoiceNumber.includes(search) || jobNumber.includes(search);
+        
+        if (matches || search === "") {
+            card.classList.remove("hidden");
+            visibleCount++;
+        } else {
+            card.classList.add("hidden");
+        }
+    });
+    
+    // Update visible count in badge
+    const badge = column.closest(".kanban-column").querySelector(".badge");
+    if (badge && search !== "") {
+        badge.textContent = visibleCount;
+    } else if (badge) {
+        // Reset to original count when search is cleared
+        const originalCount = column.querySelectorAll(".kanban-card").length;
+        badge.textContent = originalCount;
+    }
+}
 </script>
 @endpush
 @endsection
