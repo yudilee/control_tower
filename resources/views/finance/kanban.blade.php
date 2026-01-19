@@ -469,13 +469,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function handleDragEnd(e) {
-        this.classList.remove('dragging');
-        columns.forEach(col => col.classList.remove('drag-over'));
+        this.classList.remove("dragging");
+        columns.forEach(col => col.classList.remove("drag-over", "drag-invalid"));
     }
 
-    function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
-    function handleDragEnter(e) { this.classList.add('drag-over'); }
-    function handleDragLeave(e) { this.classList.remove('drag-over'); }
+    function handleDragOver(e) { 
+        e.preventDefault(); 
+        e.dataTransfer.dropEffect = "move"; 
+    }
+    
+    function handleDragEnter(e) { 
+        // Only show drag-over if it is not the source column
+        if (originalParent !== this) {
+            // Check if it is an invalid drop target (credit_note column)
+            if (this.dataset.status === "credit_note") {
+                this.classList.add("drag-invalid");
+                this.classList.remove("drag-over");
+            } else {
+                this.classList.add("drag-over");
+                this.classList.remove("drag-invalid");
+            }
+        }
+    }
+    
+    function handleDragLeave(e) { 
+        // Only remove if actually leaving (not entering a child)
+        if (e.relatedTarget && !this.contains(e.relatedTarget)) {
+            this.classList.remove("drag-over", "drag-invalid");
+        }
+    }
 
     function handleDrop(e) {
         e.preventDefault();

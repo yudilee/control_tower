@@ -91,13 +91,53 @@
 .kanban-card .age.urgent { color: var(--bs-danger); font-weight: 600; }
 .kanban-card .age.warning { color: var(--bs-warning); }
 
-/* Sortable ghost */
+/* Sortable ghost and drag states */
 .sortable-ghost {
-    opacity: 0.4;
+    opacity: 0.4 !important;
     background: var(--bs-primary-bg-subtle);
+    transform: rotate(3deg);
 }
 .sortable-chosen {
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2) !important;
+    cursor: grabbing !important;
+}
+.kanban-body.drag-over {
+    background: rgba(var(--bs-success-rgb), 0.08) !important;
+    border: 2px dashed var(--bs-success) !important;
+    border-radius: 8px;
+    position: relative;
+}
+.kanban-body.drag-over::after {
+    content: 'Drop here';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--bs-success);
+    font-weight: 600;
+    font-size: 1.2rem;
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 1;
+}
+.kanban-body.drag-invalid {
+    background: rgba(var(--bs-danger-rgb), 0.08) !important;
+    border: 2px dashed var(--bs-danger) !important;
+    border-radius: 8px;
+    position: relative;
+}
+.kanban-body.drag-invalid::after {
+    content: 'Not allowed';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--bs-danger);
+    font-weight: 600;
+    font-size: 1.2rem;
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 1;
 }
 
 /* Color-coded columns */
@@ -455,6 +495,34 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('statusChangeRemark').focus();
                     }, 300);
                 }
+            });
+            
+            // Add custom drag-over visual feedback
+            column.addEventListener("dragover", function(e) {
+                e.preventDefault();
+                const fromColumn = document.querySelector(".kanban-card.sortable-chosen")?.closest(".kanban-body");
+                if (fromColumn && fromColumn !== this) {
+                    // Check if move to this column is restricted
+                    const targetStatus = this.id.replace("column-", "");
+                    if (restrictedStatuses.includes(targetStatus)) {
+                        this.classList.add("drag-invalid");
+                        this.classList.remove("drag-over");
+                    } else {
+                        this.classList.add("drag-over");
+                        this.classList.remove("drag-invalid");
+                    }
+                }
+            });
+            
+            column.addEventListener("dragleave", function(e) {
+                // Only remove if actually leaving the column (not entering a child)
+                if (e.relatedTarget && !this.contains(e.relatedTarget)) {
+                    this.classList.remove("drag-over", "drag-invalid");
+                }
+            });
+            
+            column.addEventListener("drop", function() {
+                this.classList.remove("drag-over", "drag-invalid");
             });
         });
     }
