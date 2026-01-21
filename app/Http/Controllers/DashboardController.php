@@ -254,6 +254,12 @@ class DashboardController extends Controller
                 'danger' => '#dc3545',
                 'info' => '#0dcaf0',
                 'secondary' => '#6c757d',
+                'purple' => '#6f42c1',
+                'indigo' => '#6610f2',
+                'cyan' => '#0dcaf0',
+                'orange' => '#fd7e14',
+                'teal' => '#20c997',
+                'pink' => '#d63384',
                 default => '#6c757d'
             }
         ])->filter(fn($s) => $s['count'] > 0);
