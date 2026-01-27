@@ -28,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
         Paginator::useBootstrapFive();
         
         // Register Job Observer for workflow automation
+        // Register Job Observer for workflow automation
         Job::observe(JobObserver::class);
 
         // Share important announcements with layout

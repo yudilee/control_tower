@@ -434,12 +434,12 @@ class Job extends Model
             }
         };
 
-        static::created($handleDashboardUpdate);
-        static::updated(function ($job) use ($handleDashboardUpdate) {
-            // Clear cache and broadcast for any job update
-            $handleDashboardUpdate();
-        });
-        static::deleted($handleDashboardUpdate);
+        // static::created($handleDashboardUpdate);
+        // static::updated(function ($job) use ($handleDashboardUpdate) {
+        //     // Clear cache and broadcast for any job update
+        //     $handleDashboardUpdate();
+        // });
+        // static::deleted($handleDashboardUpdate);
     }
 
     public function vehicle(): BelongsTo
