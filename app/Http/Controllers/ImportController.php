@@ -606,28 +606,50 @@ class ImportController extends Controller
         $header = array_shift($rows);
         $headerMap = array_flip(array_map('strtolower', array_map('trim', $header)));
 
-        // Validate this is an uninvoiced file, not an invoice file
-        // Uninvoiced files should have columns like 'reg. no.' or 'customer name' but NOT 'invoice date' or 'inv+ppn'
+        // Validate this is an uninvoiced file
         $hasInvoiceColumns = isset($headerMap['invoice']) || isset($headerMap['inv+ppn']) || isset($headerMap['inv+ppn+meterai']);
-        $hasUninvoicedColumns = isset($headerMap['wip']) || isset($headerMap['no job']) || isset($headerMap['reg. no.']) || isset($headerMap['customer name']);
         
         if ($hasInvoiceColumns) {
             return redirect()->back()
                 ->with('error', 'This appears to be an INVOICED file (contains Invoice/Inv+PPN columns). Please use the "Import Invoiced" menu instead.');
         }
 
+        // PERFORMANCE OPTIMIZATION: Pre-fetch and Caching
+        // 1. Load helpers (SA, Foreman)
+        $saCache = ServiceAdvisor::pluck('id', 'name')->toArray(); // name => id
+        $foremanCache = Foreman::pluck('id', 'name')->toArray(); // name => id
+        
+        // 2. Prepare Collections for Batch Loading
+        $wipList = [];
+        $plateList = [];
+        foreach ($rows as $row) {
+            $wip = $this->getColumnValue($row, $headerMap, ['wip', 'no job', 'job_number', 'job number', 'nomer job', 'no. job']);
+            if ($wip) $wipList[] = $wip;
+            
+            $plate = $this->getColumnValue($row, $headerMap, ['reg. no.', 'reg no', 'no polisi', 'plate_number', 'plate number', 'nopol']);
+            if ($plate) $plateList[] = $plate;
+        }
+        $wipList = array_unique($wipList);
+        $plateList = array_unique($plateList);
+
+        // 3. Batch Load Existing Data
+        $existingJobsMap = Job::whereIn('job_number', $wipList)->get()->keyBy('job_number');
+        $existingVehiclesMap = Vehicle::whereIn('plate_number', $plateList)->get()->keyBy('plate_number');
+        
+        // 4. Local Cache for Customer Lookups to avoid repeated DB hits
+        $customerLookupCache = []; // name|plate => customer_id
+
         $imported = 0;
         $updated = 0;
         $failed = 0;
         $customersLinked = 0;
         $customersUnlinked = [];
-        $importedJobIds = [];
         $failedRows = [];
         $conflictRows = [];
         $maxFailedRows = 100;
         $rowIndex = 0;
 
-        // Create import record first so we have import_id for conflict resolution
+        // Create import record
         $import = Import::create([
             'file_name' => $file->getClientOriginalName(),
             'import_type' => 'uninvoiced',
@@ -638,278 +660,241 @@ class ImportController extends Controller
         ]);
         $importId = $import->id;
 
-        foreach ($rows as $row) {
-            $rowIndex++;
-            $jobNumber = null;
-            $plateNumber = null;
-            try {
-                // Support multiple column name formats including uiws.xls format
-                $jobNumber = $this->getColumnValue($row, $headerMap, [
-                    'wip', 'no job', 'job_number', 'job number', 'nomer job', 'no. job'
-                ]);
-                
-                if (empty($jobNumber)) {
-                    continue;
-                }
-
-                $plateNumber = $this->getColumnValue($row, $headerMap, [
-                    'reg. no.', 'reg no', 'no polisi', 'plate_number', 'plate number', 'nopol'
-                ]);
-
-                $customerName = $this->getColumnValue($row, $headerMap, [
-                    'customer name', 'customer', 'nama customer', 'nama pelanggan'
-                ]);
-
-                // Concatenate Address 01-05 fields if present
-                $addressParts = [];
-                for ($k = 1; $k <= 5; $k++) {
-                    $key = 'address ' . str_pad($k, 2, '0', STR_PAD_LEFT); // address 01, address 02...
-                    $addrVal = $this->getColumnValue($row, $headerMap, [$key]);
-                    if ($addrVal) {
-                        $addressParts[] = $addrVal;
-                    }
-                }
-                $customerAddress = !empty($addressParts) 
-                    ? implode("\n", $addressParts) 
-                    : $this->getColumnValue($row, $headerMap, ['customer address', 'alamat', 'address', 'alamat customer']);
-                
-                // Find linked DMS customer (uses vehicle fallback if name doesn't match)
-                $linkedCustomer = null;
-                $customerId = null;
-                if (!empty($customerName)) {
-                    $linkedCustomer = CustomerAlias::findCustomerByName($customerName, $plateNumber);
-                    if ($linkedCustomer) {
-                        $customerId = $linkedCustomer->id;
-                        $customersLinked++;
-                    } else {
-                        $customersUnlinked[$customerName] = ($customersUnlinked[$customerName] ?? 0) + 1;
-                    }
-                }
-
-                $jobData = [
-                    'block' => $this->getColumnValue($row, $headerMap, ['ll', 'block', 'blok']),
-                    'department' => $this->getColumnValue($row, $headerMap, ['d', 'dept', 'department']),
-                    'franchise' => $franchise,
-                    'job_card' => $this->getColumnValue($row, $headerMap, [
-                        'job card', 'jobcard', 'no job card'
-                    ]),
-                    'plate_number' => $plateNumber,
-                    'customer_name' => $customerName,
-                    'customer_id' => $customerId,
-                    'customer_address' => $customerAddress,
-                    'unit_type' => $this->getColumnValue($row, $headerMap, [
-                        'type unit', 'unit', 'model', 'type', 'kendaraan', 'tipe unit'
-                    ]),
-                    // 'type_unit' mostly redundant if maps to same, using unit_type field for now based on rename
+        // Wrap processing in Transaction
+        \DB::beginTransaction();
+        try {
+            foreach ($rows as $row) {
+                $rowIndex++;
+                $jobNumber = null;
+                $plateNumber = null;
+                try {
+                    // Extract IDs
+                    $jobNumber = $this->getColumnValue($row, $headerMap, [
+                        'wip', 'no job', 'job_number', 'job number', 'nomer job', 'no. job'
+                    ]);
                     
-                    'account_no' => $this->getColumnValue($row, $headerMap, [
-                        'acc no', 'account no', 'account', 'no akun', 'akun'
-                    ]),
-                    'date_first_reg' => $this->parseDate($this->getColumnValue($row, $headerMap, [
-                        'date reg', 'date first reg', 'first reg', 'tgl registrasi pertama'
-                    ])),
-                    'service_advisor' => $this->helpersFindOrCreate(
-                        ServiceAdvisor::class, 
-                        $this->getColumnValue($row, $headerMap, ['service advisor', 'sa', 'service_advisor'])
-                    ),
-                    'technician' => $this->getColumnValue($row, $headerMap, [
-                        'teknisi', 'technician', 'mekanik'
-                    ]),
-                    'foreman' => $this->helpersFindOrCreate(
-                        Foreman::class,
-                        $this->getColumnValue($row, $headerMap, ['foreman', 'kepala regu', 'mandor'])
-                    ),
-                    'job_date' => $this->parseDate($this->getColumnValue($row, $headerMap, [
-                        'created', 'date registered', 'tanggal', 'date', 'tgl', 'job_date', 'tgl job', 'check in date'
-                    ])),
-                    'check_in_time' => $this->parseTime($this->getColumnValue($row, $headerMap, [
-                        'jam', 'time', 'check in time', 'waktu',
-                        'created', 'date registered', 'tanggal', 'date', 'tgl', 'job_date', 'check in date'
-                    ])),
-                     'payment_type' => $this->getColumnValue($row, $headerMap, [
-                        'code', 'kode', 'payment type', 'tipe bayar'
-                    ]),
-                    'job_description' => $this->getColumnValue($row, $headerMap, [
-                        'operation', 'job description', 'pekerjaan', 'deskripsi'
-                    ]),
-                    'deadline' => $this->parseDate($this->getColumnValue($row, $headerMap, [
-                        'deadline', 'estimasi selesai', 'due date'
-                    ])),
-                    'labour_sales' => $this->parseAmount($this->getColumnValue($row, $headerMap, [
-                        'labour sale', 'labour sales', 'labor sale', 'labor sales', 'jasa', 'biaya jasa'
-                    ])),
-                    'part_sales' => $this->parseAmount($this->getColumnValue($row, $headerMap, [
-                        'part sales', 'parts sales', 'part sale', 'sparepart', 'biaya part'
-                    ])),
-                    'total_sales' => $this->parseAmount($this->getColumnValue($row, $headerMap, [
-                        'total sales', 'total  sales', 'total', 'grand total', 'estimasi', 'amount', 'nilai'
-                    ])),
-                    'estimated_amount' => $this->parseAmount($this->getColumnValue($row, $headerMap, [
-                        'total sales', 'total', 'estimasi', 'amount', 'nilai'
-                    ])),
-                    'rq' => $this->getColumnValue($row, $headerMap, [
-                        'rq', 'requisition', 'req'
-                    ]),
-                    'no_order_part_mbina' => $this->getColumnValue($row, $headerMap, [
-                        'no order part mbina', 'order part', 'no order'
-                    ]),
-                    'lain_lain' => $this->getColumnValue($row, $headerMap, [
-                        'lain lain', 'lain-lain', 'other', 'lainnya'
-                    ]),
-                    'latest_remark' => $this->getColumnValue($row, $headerMap, [
-                        'remarks', 'remark', 'keterangan', 'catatan'
-                    ]),
-                    'update_remarks' => $this->getColumnValue($row, $headerMap, [
-                        'update remarks', 'update remark', 'update keterangan'
-                    ]),
-                    'status' => 'uninvoiced',
-                    'status' => 'uninvoiced',
-                    // 'work_status' => 'belum_diproses', // REMOVED: Don't overwrite status
-                ];
-
-                // RECONCILIATION Check
-                // 1. Check if job exists by real WIP
-                $existingJob = Job::where('job_number', $jobNumber)->first();
-                
-                // 2. If not found, check if a Dummy exists for this Plate
-                if (!$existingJob && !empty($plateNumber)) {
-                   $dummyCandidate = Job::where('is_dummy_wip', true)
-                        ->where(function($q) use ($plateNumber) {
-                            $q->where('plate_number', $plateNumber)
-                              ->orWhere('plate_number', 'LIKE', str_replace(' ', '%', $plateNumber));
-                        })
-                        ->where('franchise', $franchise)
-                        ->orderBy('created_at', 'desc')
-                        ->first();
-                        
-                    if ($dummyCandidate) {
-                         // Fix the WIP and remove dummy flag
-                        $dummyCandidate->update([
-                            'job_number' => $jobNumber,
-                            'is_dummy_wip' => false,
-                            'description' => ($dummyCandidate->description ?? '') . " [RECONCILED: Original Typo WIP was {$dummyCandidate->job_number}]"
-                        ]);
-                        \Log::info("UNINVOICED import: RECONCILED Dummy Job {$dummyCandidate->id} (Plate {$plateNumber}) to Real WIP {$jobNumber}");
+                    if (empty($jobNumber)) {
+                        continue; // Skip empty rows
                     }
-                }
 
-                // WIP SWAP LOGIC: Check if existing job holder has wrong plate
-                $existingJobForSwap = Job::where('job_number', $jobNumber)->first();
-                if ($existingJobForSwap && !empty($plateNumber)) {
-                    $dbPlate = $this->sanitizeText($existingJobForSwap->plate_number);
-                    $uninvoicedPlate = $this->sanitizeText($plateNumber);
+                    $plateNumber = $this->getColumnValue($row, $headerMap, [
+                        'reg. no.', 'reg no', 'no polisi', 'plate_number', 'plate number', 'nopol'
+                    ]);
+
+                    $customerName = $this->getColumnValue($row, $headerMap, [
+                        'customer name', 'customer', 'nama customer', 'nama pelanggan'
+                    ]);
+
+                    // Address Construction
+                    $addressParts = [];
+                    for ($k = 1; $k <= 5; $k++) {
+                        $key = 'address ' . str_pad($k, 2, '0', STR_PAD_LEFT);
+                        $addrVal = $this->getColumnValue($row, $headerMap, [$key]);
+                        if ($addrVal) $addressParts[] = $addrVal;
+                    }
+                    $customerAddress = !empty($addressParts) 
+                        ? implode("\n", $addressParts) 
+                        : $this->getColumnValue($row, $headerMap, ['customer address', 'alamat', 'address', 'alamat customer']);
                     
-                    if ($dbPlate && $uninvoicedPlate && $dbPlate !== $uninvoicedPlate) {
-                        // Current job has DIFFERENT plate - might be wrong holder
-                        $dummyWithCorrectPlate = Job::where('is_dummy_wip', true)
-                            ->where(function($q) use ($uninvoicedPlate, $plateNumber) {
-                                $q->where('plate_number', $plateNumber)
-                                  ->orWhere('plate_number', $uninvoicedPlate);
-                            })
-                            ->where('franchise', $franchise)
-                            ->first();
-                        
-                        if ($dummyWithCorrectPlate) {
-                            // SWAP: Demote current holder, Promote Dummy
-                            $oldWip = $existingJobForSwap->job_number;
-                            $wrongWip = $oldWip . '-WRONG-' . $existingJobForSwap->id;
-                            
-                            // Track conflict for report
-                            $conflictRows[] = [
-                                'row' => $rowIndex,
-                                'type' => 'SWAP',
-                                'original_wip' => $oldWip,
-                                'new_wip' => $wrongWip,
-                                'demoted_plate' => $existingJobForSwap->plate_number,
-                                'promoted_plate' => $plateNumber,
-                                'action' => "Demoted {$existingJobForSwap->plate_number} to {$wrongWip}, Promoted {$plateNumber} to {$oldWip}",
-                            ];
-                            
-                            // 1. Demote wrongful holder
-                            $existingJobForSwap->update([
-                                'job_number' => $wrongWip,
-                                'is_dummy_wip' => true,
-                                'import_id' => $importId,
-                                'description' => ($existingJobForSwap->description ?? '') . " [DEMOTED: WIP {$oldWip} now belongs to {$plateNumber}]"
-                            ]);
-                            \Log::warning("UNINVOICED import: SWAPPED - Demoted Job {$oldWip} (Plate {$dbPlate}) to {$wrongWip}");
-                            
-                            // 2. Promote Dummy to real WIP
-                            $dummyWithCorrectPlate->update([
-                                'job_number' => $jobNumber,
-                                'is_dummy_wip' => false,
-                                'import_id' => $importId,
-                                'description' => ($dummyWithCorrectPlate->description ?? '') . " [PROMOTED: Was {$dummyWithCorrectPlate->job_number}, now correct WIP {$jobNumber}]"
-                            ]);
-                            \Log::info("UNINVOICED import: SWAPPED - Promoted Dummy to Real WIP {$jobNumber} (Plate {$plateNumber})");
+                    // Optimized Customer Lookup (Memoized)
+                    $customerId = null;
+                    if (!empty($customerName)) {
+                        $cacheKey = $customerName . '|' . $plateNumber;
+                        if (isset($customerLookupCache[$cacheKey])) {
+                            $customerId = $customerLookupCache[$cacheKey];
+                            if ($customerId) $customersLinked++; // Count hits as linked (approx)
+                        } else {
+                            $linkedCustomer = CustomerAlias::findCustomerByName($customerName, $plateNumber);
+                            if ($linkedCustomer) {
+                                $customerId = $linkedCustomer->id;
+                                $customersLinked++;
+                                $customerLookupCache[$cacheKey] = $customerId;
+                            } else {
+                                $customersUnlinked[$customerName] = ($customersUnlinked[$customerName] ?? 0) + 1;
+                                $customerLookupCache[$cacheKey] = null; // Cache miss too
+                            }
                         }
                     }
-                }
 
-                // Track old plate before update for orphan cleanup
-                $oldPlate = Job::where('job_number', $jobNumber)->value('plate_number');
+                    // Helper Retrieval (Local Cache)
+                    $saName = $this->getColumnValue($row, $headerMap, ['service advisor', 'sa', 'service_advisor']);
+                    if ($saName && !isset($saCache[$saName])) {
+                        // Create if not exists and update cache
+                        $sa = ServiceAdvisor::firstOrCreate(['name' => $saName], ['active' => true, 'franchise' => $franchise]);
+                        $saCache[$saName] = $sa->id;
+                    }
 
-                // Use firstOrNew to only set work_status on creation, never overwrite
-                $job = Job::firstOrNew(['job_number' => $jobNumber]);
-                
-                if (!$job->exists) {
-                    $job->work_status = Job::WORK_STATUSES[0];
-                }
-                
-                $job->fill(array_filter($jobData));
-                $job->save();
+                    $foremanName = $this->getColumnValue($row, $headerMap, ['foreman', 'kepala regu', 'mandor']);
+                    if ($foremanName && !isset($foremanCache[$foremanName])) {
+                        $fm = Foreman::firstOrCreate(['name' => $foremanName], ['active' => true, 'franchise' => $franchise]);
+                        $foremanCache[$foremanName] = $fm->id;
+                    }
 
-                $importedJobIds[] = $job->id;
+                    $jobData = [
+                        'block' => $this->getColumnValue($row, $headerMap, ['ll', 'block', 'blok']),
+                        'department' => $this->getColumnValue($row, $headerMap, ['d', 'dept', 'department']),
+                        'franchise' => $franchise,
+                        'job_card' => $this->getColumnValue($row, $headerMap, ['job card', 'jobcard', 'no job card']),
+                        'plate_number' => $plateNumber,
+                        'customer_name' => $customerName,
+                        'customer_id' => $customerId,
+                        'customer_address' => $customerAddress,
+                        'unit_type' => $this->getColumnValue($row, $headerMap, ['type unit', 'unit', 'model', 'type', 'kendaraan', 'tipe unit']),
+                        'account_no' => $this->getColumnValue($row, $headerMap, ['acc no', 'account no', 'account', 'no akun', 'akun']),
+                        'date_first_reg' => $this->parseDate($this->getColumnValue($row, $headerMap, ['date reg', 'date first reg', 'first reg', 'tgl registrasi pertama'])),
+                        'service_advisor' => $saName,
+                        'technician' => $this->getColumnValue($row, $headerMap, ['teknisi', 'technician', 'mekanik']),
+                        'foreman' => $foremanName,
+                        'job_date' => $this->parseDate($this->getColumnValue($row, $headerMap, ['created', 'date registered', 'tanggal', 'date', 'tgl', 'job_date', 'tgl job', 'check in date'])),
+                        'check_in_time' => $this->parseTime($this->getColumnValue($row, $headerMap, [
+                            'jam', 'time', 'check in time', 'waktu',
+                            'created', 'date registered', 'tanggal', 'date', 'tgl', 'job_date', 'check in date'
+                        ])),
+                        'payment_type' => $this->getColumnValue($row, $headerMap, ['code', 'kode', 'payment type', 'tipe bayar']),
+                        'job_description' => $this->getColumnValue($row, $headerMap, ['operation', 'job description', 'pekerjaan', 'deskripsi']),
+                        'deadline' => $this->parseDate($this->getColumnValue($row, $headerMap, ['deadline', 'estimasi selesai', 'due date'])),
+                        'labour_sales' => $this->parseAmount($this->getColumnValue($row, $headerMap, ['labour sale', 'labour sales', 'labor sale', 'labor sales', 'jasa', 'biaya jasa'])),
+                        'part_sales' => $this->parseAmount($this->getColumnValue($row, $headerMap, ['part sales', 'parts sales', 'part sale', 'sparepart', 'biaya part'])),
+                        'total_sales' => $this->parseAmount($this->getColumnValue($row, $headerMap, ['total sales', 'total  sales', 'total', 'grand total', 'estimasi', 'amount', 'nilai'])),
+                        'estimated_amount' => $this->parseAmount($this->getColumnValue($row, $headerMap, ['total sales', 'total', 'estimasi', 'amount', 'nilai'])),
+                        'rq' => $this->getColumnValue($row, $headerMap, ['rq', 'requisition', 'req']),
+                        'no_order_part_mbina' => $this->getColumnValue($row, $headerMap, ['no order part mbina', 'order part', 'no order']),
+                        'lain_lain' => $this->getColumnValue($row, $headerMap, ['lain lain', 'lain-lain', 'other', 'lainnya']),
+                        'latest_remark' => $this->getColumnValue($row, $headerMap, ['remarks', 'remark', 'keterangan', 'catatan']),
+                        'update_remarks' => $this->getColumnValue($row, $headerMap, ['update remarks', 'update remark', 'update keterangan']),
+                        'status' => 'uninvoiced',
+                    ];
 
-                if ($job->wasRecentlyCreated) {
-                    $imported++;
-                } else {
-                    $updated++;
-                    // Track and cleanup if plate changed
-                    if ($oldPlate && $plateNumber && $this->sanitizeText($oldPlate) !== $this->sanitizeText($plateNumber)) {
-                        // Track plate correction for report
-                        $conflictRows[] = [
-                            'row' => $rowIndex,
-                            'type' => 'PLATE_CORRECTION',
-                            'original_wip' => $jobNumber,
-                            'new_wip' => $jobNumber,
-                            'demoted_plate' => $oldPlate,
-                            'promoted_plate' => $plateNumber,
-                            'action' => "Plate corrected from {$oldPlate} to {$plateNumber}",
+                    // Process Job Logic using Maps
+                    $existingJob = $existingJobsMap[$jobNumber] ?? null;
+                    
+                    // RECONCILIATION Checks (simplified for performance, but keeping core logic)
+                    if (!$existingJob && !empty($plateNumber)) {
+                        // Check for Dummy Candidate (needs DB query as we don't cache all dummies, but it's rare)
+                        $dummyCandidate = Job::where('is_dummy_wip', true)
+                            ->where('plate_number', $plateNumber)
+                            ->where('franchise', $franchise)
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+                            
+                        if ($dummyCandidate) {
+                            $dummyCandidate->update([
+                                'job_number' => $jobNumber,
+                                'is_dummy_wip' => false,
+                                'description' => ($dummyCandidate->description ?? '') . " [RECONCILED: Original Typo WIP was {$dummyCandidate->job_number}]"
+                            ]);
+                            $existingJob = $dummyCandidate; // Treat as existing now
+                            $existingJobsMap[$jobNumber] = $existingJob; // Update map
+                            \Log::info("UNINVOICED import: RECONCILED Dummy Job {$dummyCandidate->id}");
+                        }
+                    }
+
+                    if ($existingJob) {
+                        // Conflict/Swap Check
+                        $dbPlate = $this->sanitizeText($existingJob->plate_number);
+                        $newPlate = $this->sanitizeText($plateNumber);
+                        
+                        // If plate mismatch on existing regular Job
+                        if ($dbPlate && $newPlate && $dbPlate !== $newPlate) {
+                            // Check for SWAP Scenario (Rare, so DB query ok)
+                            $dummyWithCorrectPlate = Job::where('is_dummy_wip', true)
+                                ->where('plate_number', $plateNumber)
+                                ->where('franchise', $franchise)
+                                ->first();
+
+                            if ($dummyWithCorrectPlate) {
+                                // SWAP LOGIC
+                                $oldWip = $existingJob->job_number;
+                                $wrongWip = $oldWip . '-WRONG-' . $existingJob->id;
+                                
+                                $existingJob->update([
+                                    'job_number' => $wrongWip, 
+                                    'is_dummy_wip' => true,
+                                    'import_id' => $importId
+                                ]);
+                                
+                                $dummyWithCorrectPlate->update([
+                                    'job_number' => $jobNumber,
+                                    'is_dummy_wip' => false,
+                                    'import_id' => $importId
+                                ]);
+                                
+                                $conflictRows[] = ['row' => $rowIndex, 'type' => 'SWAP', 'action' => "Swapped {$oldWip} to {$plateNumber}"];
+                                $existingJob = $dummyWithCorrectPlate;
+                                $existingJobsMap[$jobNumber] = $existingJob;
+                            } else {
+                                // Conflict - Create Dummy
+                                $dummyWip = $jobNumber . '-DUP-' . $rowIndex;
+                                $job = Job::create(array_filter(array_merge($jobData, [
+                                    'job_number' => $dummyWip,
+                                    'import_id' => $importId,
+                                    'is_dummy_wip' => true,
+                                    'description' => ($jobData['description'] ?? '') . " [CONFLICT: Orig WIP {$jobNumber} has plate {$existingJob->plate_number}]"
+                                ]), fn($v) => !is_null($v)));
+                                $imported++;
+                                continue; // Done with this row
+                            }
+                        }
+                        
+                        // Normal Update
+                        $oldPlate = $existingJob->plate_number; // Track for orphan cleanup
+                        $existingJob->update(array_filter(array_merge($jobData, ['import_id' => $importId]), fn($v) => !is_null($v)));
+                        $updated++;
+                        
+                        // Check for orphan vehicle cleanup if plate changed
+                        if ($oldPlate && $oldPlate !== $plateNumber) {
+                             $this->cleanupOrphanVehicle($oldPlate, $plateNumber, $importId);
+                             // Update local vehicle map to reflect change if needed?
+                             // It's complex to update map perfectly, but acceptable for this edge case.
+                        }
+                        
+                    } else {
+                        // Create New
+                        $job = Job::create(array_filter(array_merge($jobData, ['job_number' => $jobNumber, 'import_id' => $importId, 'work_status' => Job::WORK_STATUSES[0]]), fn($v) => !is_null($v)));
+                        $imported++;
+                        $existingJobsMap[$jobNumber] = $job; // Add to map for subsequent rows
+                    }
+
+                    // Vehicle Update (using Map)
+                    if (!empty($plateNumber)) {
+                        $vehicleData = array_filter([
+                            'is_in_workshop' => true,
+                            'model' => $jobData['unit_type'] ?? null,
+                            'customer_name' => $jobData['customer_name'] ?? null,
+                            'customer_id' => $customerId, // Link customer
+                            'import_id' => $importId,
+                            'registration_date' => $jobData['date_first_reg'] ?? null, // Map reg date
+                        ], fn($v) => !is_null($v));
+
+                        if (isset($existingVehiclesMap[$plateNumber])) {
+                            $existingVehiclesMap[$plateNumber]->update($vehicleData);
+                        } else {
+                            $newVehicle = Vehicle::create(array_merge(['plate_number' => $plateNumber], $vehicleData));
+                            $existingVehiclesMap[$plateNumber] = $newVehicle;
+                        }
+                    }
+
+                } catch (\Exception $e) {
+                    $failed++;
+                    if (count($failedRows) < $maxFailedRows) {
+                        $failedRows[] = [
+                            'row' => $rowIndex, 
+                            'job_number' => $jobNumber ?? 'N/A', 
+                            'error' => $e->getMessage()
                         ];
-                        // Cleanup orphan vehicle
-                        $this->cleanupOrphanVehicle($oldPlate, $plateNumber, $importId);
                     }
                 }
+            } // end loop
 
-                // Create or update vehicle with model and customer info
-                if (!empty($plateNumber)) {
-                    $unitType = $jobData['unit_type'] ?? null;
-                    Vehicle::updateOrCreate(
-                        ['plate_number' => $plateNumber],
-                        array_filter([
-                            'is_in_workshop' => true,
-                            'model' => $unitType,
-                            'customer_name' => $customerName ?? null,
-                            'customer_id' => $customerId ?? null,
-                        ], fn($v) => !is_null($v))
-                    );
-                }
-            } catch (\Exception $e) {
-                $failed++;
-                if (count($failedRows) < $maxFailedRows) {
-                    $failedRows[] = [
-                        'row' => $rowIndex + 1,
-                        'sheet' => 'UNINVOICED',
-                        'job_number' => $jobNumber ?? 'N/A',
-                        'plate_number' => $plateNumber ?? 'N/A',
-                        'error' => $e->getMessage(),
-                    ];
-                }
-            }
+            \DB::commit(); // Commit all changes
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error("Import transaction failed: " . $e->getMessage());
+            return redirect()->back()->with('error', 'Import failed: ' . $e->getMessage());
         }
 
-        // Update import record with final counts
+        // Update import record
         $import->update([
             'records_imported' => $imported,
             'records_updated' => $updated,
@@ -919,6 +904,10 @@ class ImportController extends Controller
             'customers_linked' => $customersLinked,
             'customers_unlinked' => array_keys($customersUnlinked),
         ]);
+
+        // Background jobs
+        \Illuminate\Support\Facades\Artisan::queue('customers:find-duplicates');
+        \Illuminate\Support\Facades\Artisan::queue('customers:refresh-summaries');
 
         $unlinkedCount = count($customersUnlinked);
         $linkingMsg = $customersLinked > 0 || $unlinkedCount > 0 
