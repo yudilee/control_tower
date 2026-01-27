@@ -687,6 +687,8 @@ class ImportController extends Controller
                 }
 
                 $jobData = [
+                    'block' => $this->getColumnValue($row, $headerMap, ['ll', 'block', 'blok']),
+                    'department' => $this->getColumnValue($row, $headerMap, ['d', 'dept', 'department']),
                     'franchise' => $franchise,
                     'job_card' => $this->getColumnValue($row, $headerMap, [
                         'job card', 'jobcard', 'no job card'
@@ -701,10 +703,10 @@ class ImportController extends Controller
                     // 'type_unit' mostly redundant if maps to same, using unit_type field for now based on rename
                     
                     'account_no' => $this->getColumnValue($row, $headerMap, [
-                        'account no', 'account', 'no akun', 'akun'
+                        'acc no', 'account no', 'account', 'no akun', 'akun'
                     ]),
                     'date_first_reg' => $this->parseDate($this->getColumnValue($row, $headerMap, [
-                        'date first reg', 'first reg', 'tgl registrasi pertama'
+                        'date reg', 'date first reg', 'first reg', 'tgl registrasi pertama'
                     ])),
                     'service_advisor' => $this->helpersFindOrCreate(
                         ServiceAdvisor::class, 
@@ -718,7 +720,7 @@ class ImportController extends Controller
                         $this->getColumnValue($row, $headerMap, ['foreman', 'kepala regu', 'mandor'])
                     ),
                     'job_date' => $this->parseDate($this->getColumnValue($row, $headerMap, [
-                        'created', 'date reg', 'date registered', 'tanggal', 'date', 'tgl', 'job_date', 'tgl job', 'check in date'
+                        'created', 'date registered', 'tanggal', 'date', 'tgl', 'job_date', 'tgl job', 'check in date'
                     ])),
                     'check_in_time' => $this->parseTime($this->getColumnValue($row, $headerMap, [
                         'jam', 'time', 'check in time', 'waktu'
@@ -1245,22 +1247,7 @@ class ImportController extends Controller
                 try {
                     $job->addRemark($remarkText, 'System Import');
                 } catch (\Exception $remarkError) {
-                    // Silently ignore broadcast failures - remark might still be saved
-                    \Log::debug("Remark broadcast failed for job {$job->job_number}: " . $remarkError->getMessage());
-                }
-
-                // Update vehicle - don't change workshop status, just link/update info
-                if (!empty($plateNumber)) {
-                    Vehicle::updateOrCreate(
-                        ['plate_number' => $plateNumber],
-                        array_filter([
-                            'customer_name' => $customerName,
-                            'customer_id' => $customerId,
-                            'vin' => $chassisNumber, // Add chassis number as VIN
-                            'import_id' => $importId,
-                            // Don't set is_in_workshop - user should update manually after invoice
-                        ], fn($v) => !is_null($v))
-                    );
+                    // Ignore remark errors
                 }
 
             } catch (\Exception $e) {

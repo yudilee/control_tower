@@ -98,10 +98,6 @@
                             <input type="text" name="job_number" class="form-control form-control-sm" {{ $readonly ? 'disabled' : '' }} value="{{ old('job_number', $job->job_number) }}" required>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label small text-muted mb-0">Job Card</label>
-                            <input type="text" name="job_card" class="form-control form-control-sm" {{ $readonly ? 'disabled' : '' }} value="{{ old('job_card', $job->job_card) }}">
-                        </div>
-                        <div class="col-md-3">
                             <label class="form-label small text-muted mb-0">Franchise</label>
                             <select name="franchise" class="form-select form-select-sm" {{ $readonly ? 'disabled' : '' }} required>
                                 <option value="PC" {{ old('franchise', $job->franchise) == 'PC' ? 'selected' : '' }}>PC</option>

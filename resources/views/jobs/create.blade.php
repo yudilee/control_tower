@@ -54,9 +54,13 @@
                     <label class="form-label">Chassis Number</label>
                     <input type="text" name="chassis_number" class="form-control" value="{{ old('chassis_number') }}">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-8">
                     <label class="form-label">Customer Name</label>
                     <input type="text" name="customer_name" id="customer_name" class="form-control" value="{{ old('customer_name') }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Customer Address</label>
+                    <textarea name="customer_address" id="customer_address" class="form-control" rows="2">{{ old('customer_address') }}</textarea>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Service Advisor</label>
@@ -99,11 +103,15 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Job Date</label>
+                    <label class="form-label">Date In <small class="text-muted">(Job Date)</small></label>
                     <input type="date" name="job_date" id="job_date" class="form-control" value="{{ old('job_date', date('Y-m-d')) }}">
                     <small class="text-muted d-block mt-1">Press <kbd>t</kbd> for today</small>
                 </div>
                 <div class="col-md-3">
+                    <label class="form-label">Check-In Time</label>
+                    <input type="time" name="check_in_time" class="form-control" value="{{ old('check_in_time', date('H:i')) }}">
+                </div>
+                <div class="col-md-2">
                     <label class="form-label">Promise Date</label>
                     <input type="date" name="promise_date" id="promise_date" class="form-control" value="{{ old('promise_date') }}">
                     <small class="text-muted d-block mt-1">Press <kbd>t</kbd> for today</small>
@@ -172,6 +180,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Auto-fill customer name if empty
                         if (!customerNameInput.value && data.customer_name) {
                             customerNameInput.value = data.customer_name;
+                        }
+
+                        // Auto-fill customer address if empty
+                        const addressInput = document.getElementById('customer_address');
+                        if (addressInput && !addressInput.value && data.customer_address) {
+                            addressInput.value = data.customer_address;
                         }
 
                         // Auto-fill chassis/VIN if empty
