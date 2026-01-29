@@ -378,7 +378,6 @@
                                 'rq' => ['label' => 'RQ No', 'default' => false],
                                 'latest_remark' => ['label' => 'Last Remark', 'default' => true],
                                 'latest_remark_at' => ['label' => 'Remark Date', 'default' => false],
-                                'latest_remark_at' => ['label' => 'Remark Date', 'default' => false],
                                 'job_description' => ['label' => 'Description', 'default' => false],
                             ];
                             
@@ -638,7 +637,6 @@
                             @endif
                             {{ $job->latest_remark }}
                         </td>
-                        <td class="col-latest_remark_at d-none">{{ $job->latest_remark_at?->format('d/m/Y') }}</td>
                         <td class="col-latest_remark_at d-none">{{ $job->latest_remark_at?->format('d/m/Y') }}</td>
                         <td class="col-job_description d-none text-truncate" style="max-width: 200px;">{{ $job->job_description ?? '-' }}</td>
                     </tr>
