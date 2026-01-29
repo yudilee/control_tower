@@ -33,6 +33,8 @@ class StoreJobRequest extends FormRequest
             'block' => 'nullable|string',
             'job_type' => 'nullable|string',
             'job_date' => 'nullable|date',
+            'date_in' => 'nullable|date',
+            'check_in_time' => 'nullable|string',
             'promise_date' => 'nullable|date',
             'estimated_amount' => 'nullable|numeric',
             'payment_type' => 'nullable|string',

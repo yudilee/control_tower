@@ -20,6 +20,11 @@ class CreateJob
         // Ensure status is set
         $data['status'] = $data['status'] ?? 'uninvoiced';
 
+        // Copy job_date to date_in if date_in is not provided
+        if (!empty($data['job_date']) && empty($data['date_in'])) {
+            $data['date_in'] = $data['job_date'];
+        }
+
         // Create the job
         $job = Job::create($data);
 
