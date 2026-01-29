@@ -414,9 +414,31 @@
             </div>
             
             <style>
+                #dataTable thead th {
+                    position: sticky;
+                    top: 0;
+                    z-index: 10;
+                    background: #212529;
+                }
                 #dataTable th, #dataTable td {
                     overflow: hidden;
                     text-overflow: ellipsis;
+                    max-width: 200px;
+                    padding: 0.4rem 0.5rem;
+                }
+                #dataTable th {
+                    min-width: 80px;
+                }
+                .table-responsive::-webkit-scrollbar {
+                    height: 10px;
+                    width: 10px;
+                }
+                .table-responsive::-webkit-scrollbar-thumb {
+                    background: #888;
+                    border-radius: 5px;
+                }
+                .table-responsive::-webkit-scrollbar-track {
+                    background: #f1f1f1;
                 }
             </style>
             
@@ -492,8 +514,8 @@
         <span class="badge bg-danger">{{ $jobs->total() }} records</span>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover table-sm mb-0" id="dataTable" style="table-layout: fixed; white-space: nowrap;">
+        <div class="table-responsive" style="max-height: 70vh; overflow: auto;">
+            <table class="table table-hover table-sm mb-0" id="dataTable" style="white-space: nowrap;">
                 <thead class="table-dark">
                     @php
                         $currentSort = request('sort', 'job_date');
