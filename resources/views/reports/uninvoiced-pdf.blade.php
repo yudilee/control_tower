@@ -198,14 +198,12 @@
             <tr>
                 <td>{{ $index + 1 }}</td>
                 @foreach(array_keys($columns) as $col)
-                    <td class="{{ in_array($col, ['total_sales', 'labour_sales', 'part_sales']) ? 'text-end' : '' }}">
-                        @if($col === 'job_date')
-                            {{ $job->job_date?->format('d/m/Y') }}
-                        @elseif($col === 'latest_remark_at')
-                            {{ $job->latest_remark_at?->format('d/m/Y') }}
+                    <td class="{{ in_array($col, ['total_sales', 'labour_sales', 'part_sales', 'estimated_amount']) ? 'text-end' : '' }}">
+                        @if(in_array($col, ['job_date', 'date_in', 'date_out', 'promise_date', 'latest_remark_at']))
+                            {{ $job->{$col}?->format('d/m/Y') }}
                         @elseif($col === 'department')
                             {{ $job->department_label }}
-                        @elseif(in_array($col, ['total_sales', 'labour_sales', 'part_sales']))
+                        @elseif(in_array($col, ['total_sales', 'labour_sales', 'part_sales', 'estimated_amount']))
                             {{ $job->{$col} ? number_format($job->{$col}, 0, ',', '.') : '-' }}
                         @elseif($col === 'work_status')
                             <span class="badge">{{ $job->work_status ?? 'Pending' }}</span>

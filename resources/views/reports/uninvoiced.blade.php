@@ -351,30 +351,63 @@
                         @php
                             $allColumns = [
                                 'job_number' => ['label' => 'WIP', 'default' => true],
+                                'work_order_number' => ['label' => 'Work Order', 'default' => false],
+                                'job_card' => ['label' => 'Job Card', 'default' => false],
                                 'franchise' => ['label' => 'Franchise', 'default' => false],
                                 'department' => ['label' => 'Dept', 'default' => false],
                                 'plate_number' => ['label' => 'Plate No', 'default' => true],
+                                'chassis_number' => ['label' => 'Chassis', 'default' => false],
+                                'unit_type' => ['label' => 'Unit Type', 'default' => false],
                                 'customer_name' => ['label' => 'Customer', 'default' => false],
+                                'account_no' => ['label' => 'Account No', 'default' => false],
                                 'service_advisor' => ['label' => 'SA', 'default' => true],
+                                'technician' => ['label' => 'Technician', 'default' => false],
                                 'foreman' => ['label' => 'Foreman', 'default' => false],
+                                'block' => ['label' => 'Block', 'default' => false],
+                                'job_type' => ['label' => 'Job Type', 'default' => false],
                                 'job_date' => ['label' => 'Job Date', 'default' => true],
+                                'date_in' => ['label' => 'Date In', 'default' => false],
+                                'promise_date' => ['label' => 'Promise Date', 'default' => false],
+                                'date_out' => ['label' => 'Date Out', 'default' => false],
                                 'total_sales' => ['label' => 'Total Sales', 'default' => true],
+                                'estimated_amount' => ['label' => 'Est Amount', 'default' => false],
                                 'labour_sales' => ['label' => 'Labour', 'default' => false],
                                 'part_sales' => ['label' => 'Parts', 'default' => false],
                                 'work_status' => ['label' => 'Work Status', 'default' => true],
                                 'need_part' => ['label' => 'Need Part', 'default' => false],
+                                'rq' => ['label' => 'RQ No', 'default' => false],
                                 'latest_remark' => ['label' => 'Last Remark', 'default' => true],
                                 'latest_remark_at' => ['label' => 'Remark Date', 'default' => false],
+                                'latest_remark_at' => ['label' => 'Remark Date', 'default' => false],
+                                'job_description' => ['label' => 'Description', 'default' => false],
                             ];
+                            
+                            // Load User Preferences
+                            $defaultPrefs = [
+                                 'columns' => array_map(fn($col) => $col['default'], $allColumns),
+                                 'order' => array_keys($allColumns),
+                                 'widths' => [],
+                                 'sort' => 'created_at',
+                                 'dir' => 'desc'
+                            ];
+                            
+                            $storedPrefs = auth()->user()?->uninvoiced_preferences ?? [];
+                            $storedColumns = isset($storedPrefs['columns']) ? $storedPrefs['columns'] : [];
+                            $userPrefs = array_merge($defaultPrefs['columns'], $storedColumns);
+        
+                            $storedOrder = $storedPrefs['order'] ?? [];
+                            $allKeys = array_keys($allColumns);
+                            $missingKeys = array_diff($allKeys, $storedOrder);
+                            $userOrder = !empty($storedOrder) ? array_merge($storedOrder, $missingKeys) : $defaultPrefs['order'];
+                            
+                            $userWidths = $storedPrefs['widths'] ?? [];
                         @endphp
-                        @foreach($allColumns as $colKey => $col)
-                        <li>
-                            <label class="dropdown-item py-1">
-                                <input type="checkbox" class="column-toggle form-check-input me-2" data-column="{{ $colKey }}" {{ $col['default'] ? 'checked' : '' }}>
-                                {{ $col['label'] }}
-                            </label>
+                        <!-- Toggles injected via JS -->
+                        <div id="columnToggles"></div>
+                        <div class="dropdown-divider"></div>
+                        <li class="px-2 pb-2">
+                             <button type="button" class="btn btn-primary btn-sm w-100" id="saveColumnsBtn">Save Preferences</button>
                         </li>
-                        @endforeach
                     </ul>
                 </div>
             </div>
@@ -475,28 +508,47 @@
                     <tr id="headerRow">
                         @foreach([
                             'job_number' => 'WIP',
+                            'work_order_number' => 'Work Order',
+                            'job_card' => 'Job Card',
                             'franchise' => 'Franchise',
                             'department' => 'Dept',
                             'plate_number' => 'Plate',
+                            'chassis_number' => 'Chassis',
+                            'unit_type' => 'Unit Type',
                             'customer_name' => 'Customer',
+                            'account_no' => 'Account No',
                             'service_advisor' => 'SA',
+                            'technician' => 'Technician',
                             'foreman' => 'Foreman',
+                            'block' => 'Block',
+                            'job_type' => 'Job Type',
                             'job_date' => 'Date',
+                            'date_in' => 'Date In',
+                            'promise_date' => 'Promise Date',
+                            'date_out' => 'Date Out',
                             'total_sales' => 'Total Sales',
+                            'estimated_amount' => 'Est Amount',
                             'labour_sales' => 'Labour',
                             'part_sales' => 'Parts',
                             'work_status' => 'Status',
                             'need_part' => 'Parts',
+                            'rq' => 'RQ No',
                             'latest_remark' => 'Last Remark',
                             'latest_remark_at' => 'Updated',
+                            'job_description' => 'Description',
                         ] as $col => $label)
                             @php
                                 $sortable = isset($sortMap[$col]);
                                 $sortField = $sortMap[$col] ?? null;
                                 $isActive = $sortable && $currentSort === $sortField;
                                 $nextDir = $isActive && $currentDir === 'asc' ? 'desc' : 'asc';
-                                $isHidden = in_array($col, ['franchise', 'department', 'customer_name', 'foreman', 'labour_sales', 'part_sales', 'need_part', 'latest_remark_at']);
-                                $isNumeric = in_array($col, ['total_sales', 'labour_sales', 'part_sales']);
+                                $alwaysVisible = ['job_number', 'plate_number', 'service_advisor', 'job_date', 'total_sales', 'work_status', 'latest_remark'];
+                                // Hide everything else by default unless it was in the original default list
+                                // Actually, better to rely on the 'd-none' class being applied based on a list of visible columns logic
+                                // But here we use a static list for 'IsHidden' check to apply d-none initially
+                                $defaultVisible = ['job_number', 'plate_number', 'service_advisor', 'job_date', 'total_sales', 'work_status', 'latest_remark'];
+                                $isHidden = !in_array($col, $defaultVisible);
+                                $isNumeric = in_array($col, ['total_sales', 'labour_sales', 'part_sales', 'estimated_amount']);
                             @endphp
                             <th data-col="{{ $col }}" class="col-{{ $col }} {{ $isHidden ? 'd-none' : '' }} {{ $isNumeric ? 'text-end' : '' }}" @if($sortable) style="cursor: pointer;" @endif>
                                 @if($sortable)
@@ -519,14 +571,26 @@
                     @forelse($jobs as $job)
                     <tr>
                         <td class="col-job_number"><a href="{{ route('jobs.show', $job) }}" class="fw-bold">{{ $job->job_number }}</a></td>
+                        <td class="col-work_order_number d-none">{{ $job->work_order_number ?? '-' }}</td>
+                        <td class="col-job_card d-none">{{ $job->job_card ?? '-' }}</td>
                         <td class="col-franchise d-none">{{ $job->franchise ?? '-' }}</td>
                         <td class="col-department d-none">{{ $job->department_label ?? '-' }}</td>
                         <td class="col-plate_number">{{ $job->plate_number }}</td>
+                        <td class="col-chassis_number d-none">{{ $job->chassis_number ?? '-' }}</td>
+                        <td class="col-unit_type d-none">{{ $job->unit_type ?? '-' }}</td>
                         <td class="col-customer_name d-none">{{ Str::limit($job->customer_name, 20) ?? '-' }}</td>
+                        <td class="col-account_no d-none">{{ $job->account_no ?? '-' }}</td>
                         <td class="col-service_advisor">{{ $job->service_advisor ?? '-' }}</td>
+                        <td class="col-technician d-none">{{ $job->technician ?? '-' }}</td>
                         <td class="col-foreman d-none">{{ $job->foreman ?? '-' }}</td>
+                        <td class="col-block d-none">{{ $job->block ?? '-' }}</td>
+                        <td class="col-job_type d-none">{{ $job->job_type ?? '-' }}</td>
                         <td class="col-job_date">{{ $job->job_date?->format('d/m/Y') }}</td>
+                        <td class="col-date_in d-none">{{ $job->date_in?->format('d/m/Y') }}</td>
+                        <td class="col-promise_date d-none">{{ $job->promise_date?->format('d/m/Y') }}</td>
+                        <td class="col-date_out d-none">{{ $job->date_out?->format('d/m/Y') }}</td>
                         <td class="col-total_sales text-end">{{ $job->total_sales ? number_format($job->total_sales, 0, ',', '.') : '-' }}</td>
+                        <td class="col-estimated_amount text-end d-none">{{ $job->estimated_amount ? number_format($job->estimated_amount, 0, ',', '.') : '-' }}</td>
                         <td class="col-labour_sales text-end d-none">{{ $job->labour_sales ? number_format($job->labour_sales, 0, ',', '.') : '-' }}</td>
                         <td class="col-part_sales text-end d-none">{{ $job->part_sales ? number_format($job->part_sales, 0, ',', '.') : '-' }}</td>
                         <td class="col-work_status"><x-work-status :value="$job->work_status" /></td>
@@ -537,6 +601,7 @@
                                 <span class="text-muted">No</span>
                             @endif
                         </td>
+                        <td class="col-rq d-none">{{ $job->rq ?? '-' }}</td>
                         <td class="col-latest_remark text-truncate" style="max-width: 200px;">
                             @if($job->latest_remark && stripos($job->latest_remark, 'ORDER') !== false)
                                 <span class="badge bg-warning text-dark me-1"><i class="bi bi-gear"></i></span>
@@ -544,6 +609,8 @@
                             {{ $job->latest_remark }}
                         </td>
                         <td class="col-latest_remark_at d-none">{{ $job->latest_remark_at?->format('d/m/Y') }}</td>
+                        <td class="col-latest_remark_at d-none">{{ $job->latest_remark_at?->format('d/m/Y') }}</td>
+                        <td class="col-job_description d-none text-truncate" style="max-width: 200px;">{{ $job->job_description ?? '-' }}</td>
                     </tr>
                     @empty
                     <tr>
@@ -563,83 +630,225 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const table = document.getElementById('dataTable');
-    
-    // Column toggle functionality
-    document.querySelectorAll('.column-toggle').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const column = this.dataset.column;
-            const cells = document.querySelectorAll('.col-' + column);
-            cells.forEach(cell => {
-                cell.classList.toggle('d-none', !this.checked);
-            });
-            // Save to localStorage
-            localStorage.setItem('uninvoiced_col_' + column, this.checked ? '1' : '0');
-        });
+    document.addEventListener('DOMContentLoaded', function() {
+        const allColumns = @json($allColumns);
+        const userPrefs = @json($userPrefs);
+        let userOrder = @json($userOrder);
+        const userWidths = @json($userWidths);
         
-        // Restore from localStorage
-        const saved = localStorage.getItem('uninvoiced_col_' + checkbox.dataset.column);
-        if (saved !== null) {
-            checkbox.checked = saved === '1';
-            const cells = document.querySelectorAll('.col-' + checkbox.dataset.column);
-            cells.forEach(cell => {
-                cell.classList.toggle('d-none', saved !== '1');
+        const table = document.getElementById('dataTable');
+        const headerRow = document.getElementById('headerRow');
+        const container = document.getElementById('columnToggles');
+        
+        // 1. Apply Order
+        function applyColumnOrder(order) {
+            // Reorder Header
+            order.forEach((col) => {
+                const th = headerRow.querySelector(`th[data-col="${col}"]`);
+                if (th) headerRow.appendChild(th);
+            });
+            
+            // Reorder Body
+            document.querySelectorAll('#dataTable tbody tr').forEach(row => {
+                order.forEach(col => {
+                    const td = row.querySelector(`.col-${col}`);
+                    if (td) row.appendChild(td);
+                });
             });
         }
-    });
+        if (userOrder.length > 0) applyColumnOrder(userOrder);
 
-    // Column Resizing
-    table.querySelectorAll('th').forEach(th => {
-        const resizer = document.createElement('div');
-        resizer.style.cssText = 'width:5px;height:100%;position:absolute;right:0;top:0;cursor:col-resize;user-select:none;z-index:10;';
-        th.appendChild(resizer);
-        th.style.position = 'relative';
-        let startX, startWidth;
-        resizer.addEventListener('mousedown', e => {
-            e.stopPropagation();
-            startX = e.pageX;
-            startWidth = th.offsetWidth;
-            document.addEventListener('mousemove', onMove);
-            document.addEventListener('mouseup', onUp);
+        // 2. Apply Widths
+        Object.keys(userWidths).forEach(col => {
+            const th = table.querySelector(`th[data-col="${col}"]`);
+            if(th) th.style.width = userWidths[col];
         });
-        function onMove(e) { 
-            th.style.width = (startWidth + e.pageX - startX) + 'px'; 
-        }
-        function onUp() { 
-            document.removeEventListener('mousemove', onMove); 
-            document.removeEventListener('mouseup', onUp);
-            // Save width to localStorage
-            const col = th.dataset.col;
-            if (col) {
-                localStorage.setItem('uninvoiced_width_' + col, th.style.width);
-            }
-        }
-    });
-    
-    // Restore saved widths
-    table.querySelectorAll('th[data-col]').forEach(th => {
-        const savedWidth = localStorage.getItem('uninvoiced_width_' + th.dataset.col);
-        if (savedWidth) {
-            th.style.width = savedWidth;
-        }
-    });
-});
 
-// Export function
-function exportReport(format) {
-    const params = new URLSearchParams(window.location.search);
-    params.set('format', format);
-    
-    // Get visible columns
-    const columns = [];
-    document.querySelectorAll('.column-toggle:checked').forEach(cb => {
-        columns.push(cb.dataset.column);
+        // 3. Build Toggles
+        function buildToggles() {
+            container.innerHTML = '';
+            userOrder.forEach(key => {
+                if (!allColumns[key]) return;
+                const label = allColumns[key].label;
+                
+                const div = document.createElement('div');
+                div.className = 'form-check d-flex align-items-center py-1 dropdown-item';
+                div.draggable = true;
+                div.dataset.col = key;
+                div.onclick = function(e) { e.stopPropagation(); };
+                
+                div.innerHTML = `
+                    <i class="bi bi-grip-vertical text-muted me-2" style="cursor: grab;"></i>
+                    <input class="form-check-input col-toggle" type="checkbox" value="${key}" id="col_${key}" ${userPrefs[key] ? 'checked' : ''}>
+                    <label class="form-check-label ms-1 small" for="col_${key}">${label}</label>
+                `;
+                container.appendChild(div);
+            });
+            setupDragDrop();
+        }
+        buildToggles();
+
+        // 4. Drag and Drop for Toggles
+        function setupDragDrop() {
+            let draggedEl = null;
+            container.querySelectorAll('[draggable]').forEach(el => {
+                el.addEventListener('dragstart', e => { 
+                    draggedEl = el; 
+                    el.classList.add('opacity-50'); 
+                    e.dataTransfer.effectAllowed = 'move'; 
+                });
+                el.addEventListener('dragend', e => { 
+                    el.classList.remove('opacity-50'); 
+                    container.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over', 'border-top', 'border-primary')); 
+                    draggedEl = null; 
+                });
+                el.addEventListener('dragover', e => { 
+                    e.preventDefault(); 
+                    e.dataTransfer.dropEffect = 'move'; 
+                    el.classList.add('drag-over', 'border-top', 'border-primary'); 
+                });
+                el.addEventListener('dragleave', e => { 
+                    el.classList.remove('drag-over', 'border-top', 'border-primary'); 
+                });
+                el.addEventListener('drop', e => { 
+                    e.preventDefault(); 
+                    el.classList.remove('drag-over', 'border-top', 'border-primary'); 
+                    if (draggedEl && draggedEl !== el) { 
+                        container.insertBefore(draggedEl, el); 
+                        updateOrderFromDOM();
+                    } 
+                });
+            });
+        }
+
+        function updateOrderFromDOM() {
+            userOrder = [];
+            container.querySelectorAll('[data-col]').forEach(el => userOrder.push(el.dataset.col));
+            applyColumnOrder(userOrder);
+        }
+
+        // 5. Apply Visibility
+        function applyVisibility() {
+            document.querySelectorAll('.col-toggle').forEach(toggle => {
+                const colName = toggle.value;
+                const visible = toggle.checked;
+                
+                const th = table.querySelector(`th[data-col="${colName}"]`);
+                if(th) {
+                    if (visible) th.classList.remove('d-none');
+                    else th.classList.add('d-none');
+                }
+                
+                // Toggle body cells using class selector
+                table.querySelectorAll(`.col-${colName}`).forEach(td => {
+                    if (visible) td.classList.remove('d-none');
+                    else td.classList.add('d-none');
+                });
+            });
+        }
+        applyVisibility();
+        
+        container.addEventListener('change', function(e) {
+            if (e.target.classList.contains('col-toggle')) {
+                applyVisibility();
+            }
+        });
+
+        // 6. Resizing Logic
+        table.querySelectorAll('th').forEach(th => {
+            const resizer = document.createElement('div');
+            resizer.className = 'column-resizer';
+            resizer.style.cssText = 'width:8px;height:100%;position:absolute;right:0;top:0;cursor:col-resize;user-select:none;touch-action:none;z-index:100;';
+            th.appendChild(resizer);
+            th.style.position = 'relative';
+
+            let startX, startWidth;
+            resizer.addEventListener('mousedown', initResize);
+            
+            function initResize(e) {
+                e.stopPropagation();
+                startX = e.clientX;
+                startWidth = th.offsetWidth;
+                document.documentElement.addEventListener('mousemove', doResize);
+                document.documentElement.addEventListener('mouseup', stopResize);
+            }
+            function doResize(e) {
+                th.style.width = (startWidth + e.clientX - startX) + 'px';
+            }
+            function stopResize() {
+                document.documentElement.removeEventListener('mousemove', doResize);
+                document.documentElement.removeEventListener('mouseup', stopResize);
+            }
+        });
+
+        // 7. Save Preferences
+        document.getElementById('saveColumnsBtn').addEventListener('click', function() {
+            const prefs = {};
+            document.querySelectorAll('.col-toggle').forEach(t => prefs[t.value] = t.checked);
+            
+            const widths = {};
+            table.querySelectorAll('th').forEach(th => { 
+                if(th.dataset.col && th.style.width) widths[th.dataset.col] = th.style.width; 
+            });
+            
+            const order = [];
+            container.querySelectorAll('[data-col]').forEach(el => order.push(el.dataset.col));
+
+            const btn = this;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+            btn.disabled = true;
+
+            fetch('{{ route("preferences.columns") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json', 
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ 
+                    columns: prefs, 
+                    widths: widths, 
+                    order: order, 
+                    table: 'uninvoiced' 
+                })
+            }).then(res => {
+                if (res.status === 419) {
+                    alert('Session expired. Please reload.');
+                    return { success: false };
+                }
+                if (!res.ok) throw new Error('Failed to save');
+                return res.json();
+            }).then(data => {
+                if(data.success) {
+                    btn.innerHTML = '<i class="bi bi-check"></i> Saved!';
+                    btn.className = 'btn btn-success btn-sm w-100';
+                    setTimeout(() => { 
+                        btn.innerHTML = originalText; 
+                        btn.className = 'btn btn-primary btn-sm w-100'; 
+                        btn.disabled = false;
+                    }, 2000);
+                }
+            }).catch(err => {
+                alert('Error saving preferences');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        });
     });
-    columns.forEach(c => params.append('columns[]', c));
-    
-    window.location.href = '{{ route("reports.export-uninvoiced") }}?' + params.toString();
-}
+
+    // Export function update to use .col-toggle
+    function exportReport(format) {
+        const params = new URLSearchParams(window.location.search);
+        params.set('format', format);
+        
+        const columns = [];
+        document.querySelectorAll('.col-toggle:checked').forEach(cb => {
+            columns.push(cb.value); // .value has the column key
+        });
+        columns.forEach(c => params.append('columns[]', c));
+        
+        window.location.href = '{{ route("reports.export-uninvoiced") }}?' + params.toString();
+    }
 </script>
 @endpush
 

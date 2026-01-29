@@ -156,6 +156,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let lookupTimeout = null;
     
+    function resetFields() {
+        if (unitTypeInput) unitTypeInput.value = '';
+        if (customerNameInput) customerNameInput.value = '';
+        const addressInput = document.getElementById('customer_address');
+        if (addressInput) addressInput.value = '';
+        const chassisInput = document.querySelector('input[name="chassis_number"]');
+        if (chassisInput) chassisInput.value = '';
+    }
+
     plateInput.addEventListener('input', function() {
         clearTimeout(lookupTimeout);
         const plate = this.value.trim();
@@ -163,12 +172,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (plate.length < 3) {
             lookupStatus.innerHTML = '<i class="bi bi-search"></i>';
             plateHint.textContent = 'Type plate number to lookup vehicle';
+            resetFields(); // Clear fields if input is too short
             return;
         }
         
         lookupStatus.innerHTML = '<i class="bi bi-hourglass-split spin"></i>';
         plateHint.textContent = 'Looking up...';
         
+        // Reset fields before new lookup
+        resetFields();
+
         lookupTimeout = setTimeout(() => {
             fetch(`/api/vehicles/lookup?plate=${encodeURIComponent(plate)}`)
                 .then(response => response.json())
@@ -182,25 +195,26 @@ document.addEventListener('DOMContentLoaded', function() {
                             unitTypeInput.value = data.model;
                         }
 
-                        // Auto-fill customer name if empty
-                        if (!customerNameInput.value && data.customer_name) {
+                        // Auto-fill customer name
+                        if (data.customer_name && customerNameInput) {
                             customerNameInput.value = data.customer_name;
                         }
 
-                        // Auto-fill customer address if empty
+                        // Auto-fill customer address
                         const addressInput = document.getElementById('customer_address');
-                        if (addressInput && !addressInput.value && data.customer_address) {
+                        if (addressInput && data.customer_address) {
                             addressInput.value = data.customer_address;
                         }
 
-                        // Auto-fill chassis/VIN if empty
+                        // Auto-fill chassis/VIN
                         const chassisInput = document.querySelector('input[name="chassis_number"]');
-                        if (!chassisInput.value && (data.vin || data.chassis_number)) { 
+                        if (chassisInput && (data.vin || data.chassis_number)) { 
                            chassisInput.value = data.vin || data.chassis_number;
                         }
                     } else {
                         lookupStatus.innerHTML = '<i class="bi bi-plus-circle text-info"></i>';
                         plateHint.innerHTML = '<span class="text-info">New vehicle - enter details</span>';
+                        // Fields are already reset by resetFields() above
                     }
                 })
                 .catch(err => {

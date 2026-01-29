@@ -42,21 +42,29 @@ class ReportController extends Controller
         if ($request->filled('department')) {
             $query->where('department', $request->department);
         }
-        if ($request->filled('service_advisor')) {
-            $sa = $request->service_advisor;
-            if (is_array($sa)) {
-                $query->whereIn('service_advisor', $sa);
-            } else {
-                $query->where('service_advisor', $sa);
-            }
-        }
-        if ($request->filled('foreman')) {
-            $fm = $request->foreman;
-            if (is_array($fm)) {
-                $query->whereIn('foreman', $fm);
-            } else {
-                $query->where('foreman', $fm);
-            }
+        if ($request->filled('service_advisor') || $request->filled('foreman')) {
+            $query->where(function($q) use ($request) {
+                if ($request->filled('service_advisor')) {
+                    $sa = $request->service_advisor;
+                    if (is_array($sa)) {
+                        $q->whereIn('service_advisor', $sa);
+                    } else {
+                        $q->where('service_advisor', $sa);
+                    }
+                }
+                
+                if ($request->filled('foreman')) {
+                    $fm = $request->foreman;
+                    $method = $request->filled('service_advisor') ? 'orWhere' : 'where';
+                    $methodIn = $request->filled('service_advisor') ? 'orWhereIn' : 'whereIn';
+                    
+                    if (is_array($fm)) {
+                        $q->{$methodIn}('foreman', $fm);
+                    } else {
+                        $q->{$method}('foreman', $fm);
+                    }
+                }
+            });
         }
         if ($request->filled('work_status')) {
             $query->where('work_status', $request->work_status);
@@ -698,22 +706,29 @@ class ReportController extends Controller
         if ($request->filled('franchise')) $query->where('franchise', $request->franchise);
         if ($request->filled('department')) $query->where('department', $request->department);
         
-        if ($request->filled('service_advisor')) {
-            $sa = $request->service_advisor;
-            if (is_array($sa)) {
-                $query->whereIn('service_advisor', $sa);
-            } else {
-                $query->where('service_advisor', $sa);
-            }
-        }
-        
-        if ($request->filled('foreman')) {
-            $fm = $request->foreman;
-            if (is_array($fm)) {
-                $query->whereIn('foreman', $fm);
-            } else {
-                $query->where('foreman', $fm);
-            }
+        if ($request->filled('service_advisor') || $request->filled('foreman')) {
+            $query->where(function($q) use ($request) {
+                if ($request->filled('service_advisor')) {
+                    $sa = $request->service_advisor;
+                    if (is_array($sa)) {
+                        $q->whereIn('service_advisor', $sa);
+                    } else {
+                        $q->where('service_advisor', $sa);
+                    }
+                }
+                
+                if ($request->filled('foreman')) {
+                    $fm = $request->foreman;
+                    $method = $request->filled('service_advisor') ? 'orWhere' : 'where';
+                    $methodIn = $request->filled('service_advisor') ? 'orWhereIn' : 'whereIn';
+                    
+                    if (is_array($fm)) {
+                        $q->{$methodIn}('foreman', $fm);
+                    } else {
+                        $q->{$method}('foreman', $fm);
+                    }
+                }
+            });
         }
         
         if ($request->filled('work_status')) $query->where('work_status', $request->work_status);
@@ -724,20 +739,34 @@ class ReportController extends Controller
         // Column definitions
         $allColumns = [
             'job_number' => 'WIP',
+            'work_order_number' => 'Work Order',
+            'job_card' => 'Job Card',
             'franchise' => 'Franchise',
             'department' => 'Dept',
             'plate_number' => 'Plate No',
+            'chassis_number' => 'Chassis',
+            'unit_type' => 'Unit Type',
             'customer_name' => 'Customer',
+            'account_no' => 'Account No',
             'service_advisor' => 'SA',
+            'technician' => 'Technician',
             'foreman' => 'Foreman',
+            'block' => 'Block',
+            'job_type' => 'Job Type',
             'job_date' => 'Job Date',
+            'date_in' => 'Date In',
+            'promise_date' => 'Promise Date',
+            'date_out' => 'Date Out',
             'total_sales' => 'Total Sales',
+            'estimated_amount' => 'Est Amount',
             'labour_sales' => 'Labour',
             'part_sales' => 'Parts',
             'work_status' => 'Work Status',
             'need_part' => 'Need Part',
+            'rq' => 'RQ No',
             'latest_remark' => 'Last Remark',
             'latest_remark_at' => 'Remark Date',
+            'job_description' => 'Description',
         ];
         
         // Filter to selected columns
@@ -789,10 +818,13 @@ class ReportController extends Controller
             $rowData = [];
             foreach (array_keys($columns) as $col) {
                 $value = $job->{$col};
-                if ($col === 'job_date' && $value) $value = $value->format('d/m/Y');
-                if ($col === 'latest_remark_at' && $value) $value = $value->format('d/m/Y');
+                if (in_array($col, ['job_date', 'date_in', 'date_out', 'promise_date', 'latest_remark_at']) && $value) {
+                     $value = $value->format('d/m/Y');
+                }
                 if ($col === 'department') $value = $job->department_label;
-                if (in_array($col, ['total_sales', 'labour_sales', 'part_sales']) && $value) $value = (float)$value;
+                if (in_array($col, ['total_sales', 'labour_sales', 'part_sales', 'estimated_amount']) && $value) {
+                     $value = (float)$value;
+                }
                 if ($col === 'need_part') $value = $value ? 'Yes' : 'No';
                 $rowData[] = $value ?? '';
             }

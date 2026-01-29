@@ -50,6 +50,9 @@ class PreferenceController extends Controller
             case 'customer':
                 $user->customer_preferences = $prefs;
                 break;
+            case 'uninvoiced':
+                $user->uninvoiced_preferences = $prefs;
+                break;
             default:
                 $user->column_preferences = $prefs;
         }
