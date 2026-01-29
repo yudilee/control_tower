@@ -150,8 +150,8 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label small text-muted mb-0">Type Unit</label>
-                            <input type="text" name="type_unit" class="form-control form-control-sm" {{ $readonly ? 'disabled' : '' }} value="{{ old('type_unit', $job->type_unit) }}">
+                            <label class="form-label small text-muted mb-0">Unit Type / Model</label>
+                            <input type="text" name="type_unit" class="form-control form-control-sm" {{ $readonly ? 'disabled' : '' }} value="{{ old('type_unit', $job->type_unit ?? $job->unit_type) }}">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label small text-muted mb-0">Account No</label>

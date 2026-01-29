@@ -25,6 +25,11 @@ class CreateJob
             $data['date_in'] = $data['job_date'];
         }
 
+        // Copy unit_type to type_unit if type_unit is not provided
+        if (!empty($data['unit_type']) && empty($data['type_unit'])) {
+            $data['type_unit'] = $data['unit_type'];
+        }
+
         // Create the job
         $job = Job::create($data);
 

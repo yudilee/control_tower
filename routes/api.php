@@ -64,6 +64,7 @@ Route::get('/vehicles/lookup', function (Request $request) {
             'customer_name' => $vehicle->customer_name ?? ($vehicle->customer ? $vehicle->customer->name : null),
             'customer_address' => $fullAddress,
             'vin' => $vehicle->vin,
+            'date_first_reg' => $vehicle->date_first_reg?->format('Y-m-d'),
         ]);
     }
     

@@ -54,6 +54,7 @@
                     <label class="form-label">Chassis Number</label>
                     <input type="text" name="chassis_number" class="form-control" value="{{ old('chassis_number') }}">
                 </div>
+                <input type="hidden" name="date_first_reg" id="date_first_reg" value="{{ old('date_first_reg') }}">
                 <div class="col-md-8">
                     <label class="form-label">Customer Name</label>
                     <input type="text" name="customer_name" id="customer_name" class="form-control" value="{{ old('customer_name') }}">
@@ -210,6 +211,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         const chassisInput = document.querySelector('input[name="chassis_number"]');
                         if (chassisInput && (data.vin || data.chassis_number)) { 
                            chassisInput.value = data.vin || data.chassis_number;
+                        }
+
+                        // Auto-fill date first reg
+                        const dateFirstRegInput = document.getElementById('date_first_reg');
+                        if (dateFirstRegInput && data.date_first_reg) {
+                            dateFirstRegInput.value = data.date_first_reg;
                         }
                     } else {
                         lookupStatus.innerHTML = '<i class="bi bi-plus-circle text-info"></i>';
