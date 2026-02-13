@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
+// Global Site Security
+Route::post('site-security/unlock', [\App\Http\Controllers\SiteSecurityController::class, 'unlock'])->name('site-security.unlock');
+
 // Auth Routes (Guest only)
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
