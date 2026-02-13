@@ -586,10 +586,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         jtdChart.data.labels = stats.labels;
                         jtdChart.data.datasets = stats.datasets;
                         jtdChart.update();
-                    if (jtdChart) {
-                        jtdChart.data.labels = stats.labels;
-                        jtdChart.data.datasets = stats.datasets;
-                        jtdChart.update();
                     } else {
                         const ctx = document.getElementById('jobTypeChart_v2').getContext('2d');
                         jtdChart = new Chart(ctx, {
