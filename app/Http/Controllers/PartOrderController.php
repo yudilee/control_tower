@@ -706,7 +706,7 @@ class PartOrderController extends Controller
         
         $validated = $request->validate([
             'job_id' => 'required|exists:jobs,id',
-            'rq' => 'required|string|max:50',
+            'rq' => 'required|string|max:50|unique:part_orders,rq',
             'notes' => 'nullable|string|max:1000',
         ]);
         
