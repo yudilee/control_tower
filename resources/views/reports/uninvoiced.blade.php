@@ -356,6 +356,7 @@
                                 'franchise' => ['label' => 'Franchise', 'default' => false],
                                 'department' => ['label' => 'Dept', 'default' => false],
                                 'plate_number' => ['label' => 'Plate No', 'default' => true],
+                                'is_in_workshop' => ['label' => 'In Workshop', 'default' => true],
                                 'first_reg' => ['label' => 'First Reg', 'default' => false],
                                 'chassis_number' => ['label' => 'Chassis', 'default' => false],
                                 'unit_type' => ['label' => 'Unit Type', 'default' => false],
@@ -545,6 +546,7 @@
                             'franchise' => 'Franchise',
                             'department' => 'Dept',
                             'plate_number' => 'Plate',
+                            'is_in_workshop' => 'In Workshop',
                             'first_reg' => 'First Reg',
                             'chassis_number' => 'Chassis',
                             'unit_type' => 'Unit Type',
@@ -610,6 +612,13 @@
                         <td class="col-franchise d-none">{{ $job->franchise ?? '-' }}</td>
                         <td class="col-department d-none">{{ $job->department_label ?? '-' }}</td>
                         <td class="col-plate_number">{{ $job->plate_number }}</td>
+                        <td class="col-is_in_workshop">
+                            @if($job->is_in_workshop)
+                                <span class="badge bg-success"><i class="bi bi-house-door"></i> Yes</span>
+                            @else
+                                <span class="text-muted">No</span>
+                            @endif
+                        </td>
                         <td class="col-first_reg d-none">{{ $job->date_first_reg?->format('d/m/Y') ?? '-' }}</td>
                         <td class="col-chassis_number d-none">{{ $job->chassis_number ?? '-' }}</td>
                         <td class="col-unit_type d-none">{{ $job->unit_type ?? '-' }}</td>

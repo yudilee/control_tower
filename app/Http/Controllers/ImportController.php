@@ -548,7 +548,7 @@ class ImportController extends Controller
                 // Create or update vehicle with model from unit_type
                 if (!empty($plateNumber)) {
                     $unitType = $jobData['unit_type'] ?? null;
-                    Vehicle::updateOrCreate(
+                    $vehicle = Vehicle::updateOrCreate(
                         ['plate_number' => $plateNumber],
                         array_filter([
                             'is_in_workshop' => true,
@@ -557,6 +557,11 @@ class ImportController extends Controller
                             'import_id' => $importId,
                         ], fn($v) => !is_null($v))
                     );
+
+                    // Link job to vehicle record
+                    if ($job) {
+                        $job->update(['vehicle_id' => $vehicle->id]);
+                    }
                 }
                 } catch (\Exception $e) {
                     $failed++;
@@ -902,10 +907,16 @@ class ImportController extends Controller
                         ], fn($v) => !is_null($v));
 
                         if (isset($existingVehiclesMap[$plateNumber])) {
-                            $existingVehiclesMap[$plateNumber]->update($vehicleData);
+                            $vehicle = $existingVehiclesMap[$plateNumber];
+                            $vehicle->update($vehicleData);
                         } else {
-                            $newVehicle = Vehicle::create(array_merge(['plate_number' => $plateNumber], $vehicleData));
-                            $existingVehiclesMap[$plateNumber] = $newVehicle;
+                            $vehicle = Vehicle::create(array_merge(['plate_number' => $plateNumber], $vehicleData));
+                            $existingVehiclesMap[$plateNumber] = $vehicle;
+                        }
+
+                        // NEW: Explicitly link job to the vehicle record
+                        if (isset($job) && $job) {
+                            $job->update(['vehicle_id' => $vehicle->id]);
                         }
                     }
 

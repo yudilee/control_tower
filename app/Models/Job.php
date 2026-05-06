@@ -453,7 +453,7 @@ class Job extends Model
 
     public function vehicle(): BelongsTo
     {
-        return $this->belongsTo(Vehicle::class);
+        return $this->belongsTo(Vehicle::class, 'plate_number', 'plate_number');
     }
 
     /**
@@ -674,5 +674,13 @@ class Job extends Model
         } catch (\Exception $e) {
             \Log::debug("Broadcast failed for job {$this->job_number} status update: " . $e->getMessage());
         }
+    }
+
+    /**
+     * Get workshop status from the associated vehicle
+     */
+    public function getIsInWorkshopAttribute(): bool
+    {
+        return $this->vehicle ? (bool)$this->vehicle->is_in_workshop : false;
     }
 }

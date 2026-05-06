@@ -686,7 +686,7 @@ class ReportController extends Controller
     public function exportUninvoiced(Request $request)
     {
         $format = $request->input('format', 'xlsx');
-        $selectedColumns = $request->input('columns', ['job_number', 'plate_number', 'service_advisor', 'job_date', 'total_sales', 'work_status', 'latest_remark']);
+        $selectedColumns = $request->input('columns', ['job_number', 'plate_number', 'is_in_workshop', 'service_advisor', 'job_date', 'total_sales', 'work_status', 'latest_remark']);
         
         // Build query with filters
         $query = Job::with('vehicle')
@@ -744,6 +744,7 @@ class ReportController extends Controller
             'franchise' => 'Franchise',
             'department' => 'Dept',
             'plate_number' => 'Plate No',
+            'is_in_workshop' => 'In Workshop',
             'chassis_number' => 'Chassis',
             'unit_type' => 'Unit Type',
             'customer_name' => 'Customer',

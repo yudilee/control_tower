@@ -207,6 +207,8 @@
                             {{ $job->{$col} ? number_format($job->{$col}, 0, ',', '.') : '-' }}
                         @elseif($col === 'work_status')
                             <span class="badge">{{ $job->work_status ?? 'Pending' }}</span>
+                        @elseif($col === 'is_in_workshop')
+                            {{ $job->is_in_workshop ? 'Yes' : 'No' }}
                         @elseif($col === 'need_part')
                             {{ $job->need_part ? 'Yes' : 'No' }}
                         @else
