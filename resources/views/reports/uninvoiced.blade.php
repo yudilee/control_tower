@@ -38,7 +38,10 @@
     if (request('service_advisor')) {
         $sa = request('service_advisor');
         if (is_array($sa)) {
-            $allUninvoicedJobs->whereIn('service_advisor', $sa);
+            $sa = array_values(array_filter($sa, fn($v) => $v !== null && $v !== ''));
+            if (!empty($sa)) {
+                $allUninvoicedJobs->whereIn('service_advisor', $sa);
+            }
         } else {
             $allUninvoicedJobs->where('service_advisor', $sa);
         }
@@ -46,7 +49,10 @@
     if (request('foreman')) {
         $fm = request('foreman');
         if (is_array($fm)) {
-            $allUninvoicedJobs->whereIn('foreman', $fm);
+            $fm = array_values(array_filter($fm, fn($v) => $v !== null && $v !== ''));
+            if (!empty($fm)) {
+                $allUninvoicedJobs->whereIn('foreman', $fm);
+            }
         } else {
             $allUninvoicedJobs->where('foreman', $fm);
         }

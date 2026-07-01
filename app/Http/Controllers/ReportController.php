@@ -47,7 +47,10 @@ class ReportController extends Controller
                 if ($request->filled('service_advisor')) {
                     $sa = $request->service_advisor;
                     if (is_array($sa)) {
-                        $q->whereIn('service_advisor', $sa);
+                        $sa = array_values(array_filter($sa, fn($v) => $v !== null && $v !== ''));
+                        if (!empty($sa)) {
+                            $q->whereIn('service_advisor', $sa);
+                        }
                     } else {
                         $q->where('service_advisor', $sa);
                     }
@@ -55,11 +58,16 @@ class ReportController extends Controller
                 
                 if ($request->filled('foreman')) {
                     $fm = $request->foreman;
+                    if (is_array($fm)) {
+                        $fm = array_values(array_filter($fm, fn($v) => $v !== null && $v !== ''));
+                    }
                     $method = $request->filled('service_advisor') ? 'orWhere' : 'where';
                     $methodIn = $request->filled('service_advisor') ? 'orWhereIn' : 'whereIn';
                     
                     if (is_array($fm)) {
-                        $q->{$methodIn}('foreman', $fm);
+                        if (!empty($fm)) {
+                            $q->{$methodIn}('foreman', $fm);
+                        }
                     } else {
                         $q->{$method}('foreman', $fm);
                     }
@@ -711,7 +719,10 @@ class ReportController extends Controller
                 if ($request->filled('service_advisor')) {
                     $sa = $request->service_advisor;
                     if (is_array($sa)) {
-                        $q->whereIn('service_advisor', $sa);
+                        $sa = array_values(array_filter($sa, fn($v) => $v !== null && $v !== ''));
+                        if (!empty($sa)) {
+                            $q->whereIn('service_advisor', $sa);
+                        }
                     } else {
                         $q->where('service_advisor', $sa);
                     }
@@ -719,11 +730,16 @@ class ReportController extends Controller
                 
                 if ($request->filled('foreman')) {
                     $fm = $request->foreman;
+                    if (is_array($fm)) {
+                        $fm = array_values(array_filter($fm, fn($v) => $v !== null && $v !== ''));
+                    }
                     $method = $request->filled('service_advisor') ? 'orWhere' : 'where';
                     $methodIn = $request->filled('service_advisor') ? 'orWhereIn' : 'whereIn';
                     
                     if (is_array($fm)) {
-                        $q->{$methodIn}('foreman', $fm);
+                        if (!empty($fm)) {
+                            $q->{$methodIn}('foreman', $fm);
+                        }
                     } else {
                         $q->{$method}('foreman', $fm);
                     }
