@@ -15,8 +15,9 @@ class ReportController extends Controller
     
     public function uninvoiced(Request $request)
     {
-        $query = Job::with('vehicle')
-            ->uninvoiced();
+        $query = Job::with(['vehicle', 'partOrders' => function ($q) {
+            $q->orderBy('created_at', 'desc');
+        }])->uninvoiced();
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -695,10 +696,11 @@ class ReportController extends Controller
     {
         $format = $request->input('format', 'xlsx');
         $selectedColumns = $request->input('columns', ['job_number', 'plate_number', 'is_in_workshop', 'service_advisor', 'job_date', 'total_sales', 'work_status', 'latest_remark']);
-        
+
         // Build query with filters
-        $query = Job::with('vehicle')
-            ->uninvoiced()
+        $query = Job::with(['vehicle', 'partOrders' => function ($q) {
+            $q->orderBy('created_at', 'desc');
+        }])->uninvoiced()
             ->latest('job_date');
 
         if ($request->filled('search')) {
@@ -836,6 +838,9 @@ class ReportController extends Controller
             $rowData = [];
             foreach (array_keys($columns) as $col) {
                 $value = $job->{$col};
+                if ($col === 'rq') {
+                    $value = $job->rq ?: ($job->partOrders->first()?->rq ?? null);
+                }
                 if (in_array($col, ['job_date', 'date_in', 'date_out', 'promise_date', 'latest_remark_at']) && $value) {
                      $value = $value->format('d/m/Y');
                 }

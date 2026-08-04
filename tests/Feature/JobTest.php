@@ -155,4 +155,33 @@ class JobTest extends TestCase
         $response->assertRedirect();
         $this->assertDatabaseMissing('jobs', ['id' => $job->id]);
     }
+
+    /**
+     * Test that creating a PartOrder from a job sets the job.rq field
+     */
+    public function test_creating_part_order_from_job_updates_job_rq(): void
+    {
+        $job = Job::factory()->create([
+            'need_part' => true,
+            'work_status' => '1. Belum diproses (Tunggu Antrian)',
+        ]);
+
+        $payload = [
+            'job_id' => $job->id,
+            'rq' => 'RQ-12345',
+            'notes' => 'Test RQ',
+        ];
+
+        $response = $this->actingAs($this->adminUser)->post(route('part-orders.create-from-job'), $payload);
+
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('jobs', [
+            'id' => $job->id,
+            'rq' => 'RQ-12345',
+        ]);
+        $this->assertDatabaseHas('part_orders', [
+            'job_id' => $job->id,
+            'rq' => 'RQ-12345',
+        ]);
+    }
 }

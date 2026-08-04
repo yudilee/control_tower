@@ -652,7 +652,7 @@
                                 <span class="text-muted">No</span>
                             @endif
                         </td>
-                        <td class="col-rq d-none">{{ $job->rq ?? '-' }}</td>
+                        <td class="col-rq d-none">{{ $job->rq ?: ($job->partOrders->first()?->rq ?? '-') }}</td>
                         <td class="col-latest_remark text-truncate" style="max-width: 200px;">
                             @if($job->latest_remark && stripos($job->latest_remark, 'ORDER') !== false)
                                 <span class="badge bg-warning text-dark me-1"><i class="bi bi-gear"></i></span>
