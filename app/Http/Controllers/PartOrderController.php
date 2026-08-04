@@ -249,8 +249,11 @@ class PartOrderController extends Controller
 
         $partOrder = PartOrder::create($validated);
 
-        // Update job's need_part flag
-        Job::where('id', $validated['job_id'])->update(['need_part' => true]);
+        // Update job's need_part flag and sync RQ value
+        Job::where('id', $validated['job_id'])->update([
+            'need_part' => true,
+            'rq' => $validated['rq'],
+        ]);
 
         // Log Activity
         $job = $partOrder->job;
@@ -335,6 +338,11 @@ class PartOrderController extends Controller
             'notes' => $validated['notes'],
             'updated_by' => auth()->id(),
         ]);
+
+        // Sync the job's RQ when the part order's RQ changes
+        if ($partOrder->wasChanged('rq')) {
+            Job::where('id', $partOrder->job_id)->update(['rq' => $partOrder->rq]);
+        }
 
         // Log Activity if meaningful changes
         $changes = $partOrder->getChanges();
@@ -745,9 +753,12 @@ class PartOrderController extends Controller
 
             'created_by' => auth()->id(),
         ]);
-        
-        // Update job work_status to "5. Buka RQ"
-        $job->update(['work_status' => Job::WORK_STATUSES[4] ?? '5. Buka RQ (Qrder Parts)']);
+
+        // Update job RQ field and work_status to "5. Buka RQ"
+        $job->update([
+            'rq' => $validated['rq'],
+            'work_status' => Job::WORK_STATUSES[4] ?? '5. Buka RQ (Qrder Parts)',
+        ]);
         
         // Log activity
         \App\Models\JobActivity::log($job, 'rq_opened', 
