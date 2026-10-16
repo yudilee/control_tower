@@ -831,14 +831,15 @@ class ImportController extends Controller
                              $existingJob = $candidate;
                          }
                     }
-                    
+
                     // PREVENT CROSS-FRANCHISE DUPLICATES (Uninvoiced import):
-                    // If not found in current franchise, check if same WIP+Plate exists in different franchise.
-                    if (!$existingJob && $franchise && !empty($plateNumber)) {
+                    // If the same WIP already exists in another franchise, treat it as the same job
+                    // and correct the franchise. Ignore plate/customer differences during reconciliation.
+                    if (!$existingJob && $franchise && !empty($jobNumber)) {
                         $crossFranchiseCandidate = Job::where('job_number', $jobNumber)
                             ->where('franchise', '!=', $franchise)
-                            ->where('plate_number', $plateNumber)
                             ->where('is_dummy_wip', false)
+                            ->orderBy('created_at', 'desc')
                             ->first();
                         
                         if ($crossFranchiseCandidate) {
@@ -849,7 +850,7 @@ class ImportController extends Controller
                             ]);
                             $existingJob = $crossFranchiseCandidate;
                             $existingJobsMap[$jobNumber] = ($existingJobsMap[$jobNumber] ?? collect())->push($existingJob);
-                            \Log::warning("CROSS-FRANCHISE FIX (Uninvoiced): WIP {$jobNumber} (Plate {$plateNumber}) was in {$oldFranchise}, corrected to {$franchise} (Import #{$importId})");
+                            \Log::warning("CROSS-FRANCHISE FIX (Uninvoiced): WIP {$jobNumber} was in {$oldFranchise}, corrected to {$franchise} (Import #{$importId})");
                         }
                     }
                     
@@ -878,9 +879,16 @@ class ImportController extends Controller
                         // Conflict/Swap Check
                         $dbPlate = $this->sanitizeText($existingJob->plate_number);
                         $newPlate = $this->sanitizeText($plateNumber);
-                        
-                        // If plate mismatch on existing regular Job
-                        if ($dbPlate && $newPlate && $dbPlate !== $newPlate) {
+                        $sameJobNumber = $existingJob->job_number === $jobNumber;
+                        $oldPlate = $existingJob->plate_number;
+
+                        // A re-import of the same WIP should overwrite the plate/customer data instead of
+                        // creating a duplicate, even when the Reg No or customer fields differ from the prior record.
+                        if ($sameJobNumber && $dbPlate && $newPlate && $dbPlate !== $newPlate) {
+                            \Log::info("UNINVOICED import: Updating same WIP {$jobNumber} with corrected plate {$plateNumber} (old plate: {$existingJob->plate_number})");
+                            $existingJob->update(array_filter(array_merge($jobData, ['import_id' => $importId]), fn($v) => !is_null($v)));
+                            $updated++;
+                        } elseif ($dbPlate && $newPlate && $dbPlate !== $newPlate) {
                             // Check for SWAP Scenario (Rare, so DB query ok)
                             $dummyWithCorrectPlate = Job::where('is_dummy_wip', true)
                                 ->where('plate_number', $plateNumber)
@@ -919,12 +927,12 @@ class ImportController extends Controller
                                 $imported++;
                                 continue; // Done with this row
                             }
+                        } else {
+                            // Normal Update
+                            $oldPlate = $existingJob->plate_number; // Track for orphan cleanup
+                            $existingJob->update(array_filter(array_merge($jobData, ['import_id' => $importId]), fn($v) => !is_null($v)));
+                            $updated++;
                         }
-                        
-                        // Normal Update
-                        $oldPlate = $existingJob->plate_number; // Track for orphan cleanup
-                        $existingJob->update(array_filter(array_merge($jobData, ['import_id' => $importId]), fn($v) => !is_null($v)));
-                        $updated++;
                         
                         // Check for orphan vehicle cleanup if plate changed
                         if ($oldPlate && $oldPlate !== $plateNumber) {

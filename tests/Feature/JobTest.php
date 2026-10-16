@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Job;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class JobTest extends TestCase
@@ -182,6 +183,37 @@ class JobTest extends TestCase
         $this->assertDatabaseHas('part_orders', [
             'job_id' => $job->id,
             'rq' => 'RQ-12345',
+        ]);
+    }
+
+    public function test_uninvoiced_import_updates_existing_job_when_plate_or_customer_data_changes(): void
+    {
+        Job::factory()->create([
+            'job_number' => 'WIP-001',
+            'franchise' => 'PC',
+            'plate_number' => 'B 1234 ABC',
+            'customer_name' => 'Original Customer',
+            'customer_address' => 'Original Address',
+            'status' => 'uninvoiced',
+        ]);
+
+        $csv = "WIP,Reg No,Customer Name,Address 01,Address 02\nWIP-001,B 9999 XYZ,Updated Customer,Updated Street,Updated City\n";
+        $file = UploadedFile::fake()->createWithContent('uninvoiced.csv', $csv);
+
+        $request = new \Illuminate\Http\Request();
+        $request->files->set('file', $file);
+        $request->merge(['franchise' => 'PC']);
+
+        $response = app(\App\Http\Controllers\ImportController::class)->importUninvoiced($request);
+
+        $this->assertInstanceOf(\Illuminate\Http\RedirectResponse::class, $response);
+        $this->assertDatabaseCount('jobs', 1);
+        $this->assertDatabaseHas('jobs', [
+            'job_number' => 'WIP-001',
+            'franchise' => 'PC',
+            'plate_number' => 'B 9999 XYZ',
+            'customer_name' => 'Updated Customer',
+            'customer_address' => "Updated Street\nUpdated City",
         ]);
     }
 }
